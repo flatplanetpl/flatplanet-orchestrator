@@ -182,6 +182,60 @@ If a worker encounters a genuine reasoning blocker, return the blocker to root.
 The root may then decide whether escalation is justified.
 
 
+# Risk-aware profile floor
+
+Before selecting a default profile, classify implementation risk.
+
+Risk signals include:
+
+- financial calculations, prices, taxes, currencies, or accounting semantics
+- inventory/stock integrity
+- concurrency, locking, races, idempotency, or duplicate execution
+- migrations, backfills, schema changes, or historical-data compatibility
+- authorization, security, permissions, or cross-tenant isolation
+- irreversible or externally visible state transitions
+- optimistic concurrency, autosave, conflict resolution, or delayed responses
+- distributed state, retries, rollback, or partial-failure handling
+- transformations where source units/values differ from operational units/values
+
+When the user did NOT explicitly select a profile:
+
+- low-risk, well-bounded work may use `cheap`
+- ordinary production work uses at least `balanced`
+- any material risk signal uses at least `balanced`
+- multiple interacting risk signals should strongly prefer `strong`
+- use `max` only for exceptional cases; task size alone is not sufficient
+
+Do not silently downgrade below the risk-aware floor.
+
+If the user explicitly selects a cheaper profile than the risk-aware recommendation:
+
+- honor the explicit selection
+- do NOT silently upgrade
+- record the risk mismatch internally
+- compensate with stronger independent verification
+- mention the profile/risk mismatch in the final result when materially relevant
+
+The profile controls implementation capability.
+
+It must NOT weaken verification requirements.
+
+
+# Acceptance-criteria coverage gate
+
+Before delegating a non-trivial implementation:
+
+1. derive a concise checklist of material acceptance criteria from the user request, ticket, plan, and relevant source-of-truth documentation
+2. distinguish required behavior from optional or future work
+3. include the relevant checklist in the worker contract
+4. require the worker to map completed work and tests back to those criteria
+5. retain the checklist for final verification
+
+Do not treat "build passes" or "tests pass" as proof that all acceptance criteria were implemented.
+
+A missing product behavior is still a defect even when the existing test suite is green.
+
+
 # Delegation gate
 
 Before substantive repository work, classify the task as:
@@ -525,7 +579,15 @@ Workers should normally implement and verify their own bounded scope.
 
 ## Tester
 
-Use independent tester only when it materially improves confidence.
+Use independent tester when it materially improves confidence.
+
+Independent testing is REQUIRED when any of these apply:
+
+- the task has one or more material risk signals from the Risk-aware profile floor
+- the user explicitly selected `cheap` for a non-trivial production change
+- concurrency, retries, autosave, conflict handling, delayed responses, or rollback are involved
+- the implementation changes financial, inventory, authorization, migration, or cross-tenant behavior
+- the worker made substantial corrections after initial verification
 
 Examples:
 
@@ -536,7 +598,9 @@ Examples:
 - high-risk state transitions
 - concurrency scenarios
 
-Do not spawn tester mechanically if worker verification is sufficient.
+The tester should attempt to falsify the implementation, not merely repeat the worker's happy-path tests.
+
+Do not spawn a tester mechanically for genuinely small, low-risk work when worker verification is sufficient.
 
 
 ## Researcher
@@ -555,17 +619,68 @@ Return final concise findings only.
 
 Use Astra reviewer when independent high-quality review materially improves confidence.
 
-Good reasons:
+Independent Astra review is REQUIRED for:
 
-- migrations
-- concurrency
-- security
-- data integrity
+- financial calculations or currency semantics
+- inventory/data-integrity changes
+- concurrency/locking/idempotency
+- migrations/backfills with production data implications
+- security/authorization/cross-tenant behavior
+- irreversible state transitions
+- multiple interacting risk signals
+- a non-trivial task executed with `cheap` despite a higher risk-aware recommendation
+
+Good reasons also include:
+
 - complex business invariants
 - high-risk architectural changes
 - subtle regressions
+- conflict-resolution or delayed-response behavior
 
-Do not automatically spawn reviewer for trivial changes.
+The reviewer must review the completed implementation against the source requirements and acceptance criteria, not only against the diff or passing tests.
+
+The reviewer should actively look for:
+
+- missing required behavior
+- incorrect business semantics
+- unit/currency/value transformation mistakes
+- race conditions and unsafe lock ordering
+- stale-state and delayed-response bugs
+- idempotency and retry errors
+- rollback/partial-write failures
+- migration/backfill inconsistencies
+- tests that encode the implementation's bug instead of the intended behavior
+
+Do not automatically spawn reviewer for trivial, low-risk changes.
+
+
+# Test-design policy
+
+For non-trivial work, verification must test behavior, not merely implementation shape.
+
+When relevant, require targeted tests for:
+
+- exact business calculations and semantic invariants
+- source values versus transformed/operational values
+- currency/unit propagation
+- invalid-but-well-formed input
+- nullable/special source values
+- idempotent retries and duplicate execution
+- rollback after partial progress
+- two writers using the same version
+- two operations mutating the same resource
+- deterministic concurrency interleavings when practical
+- delayed responses arriving after newer local state
+- network failure and recovery
+- conflict responses with preservation of user state
+- migrations/backfills on valid, legacy, and invalid edge cases
+- authorization and tenant-boundary enforcement
+
+For concurrency or delayed-response bugs, prefer deterministic synchronization/barrier/interceptor tests over tests that merely use `Task.WhenAll` or timing and hope the problematic interleaving occurs.
+
+Do not count a test as strong evidence when it only asserts the behavior produced by the new implementation without independently checking the business requirement.
+
+If a test passes while the acceptance criterion can still be violated, add a stronger test.
 
 
 # Default coding workflow
@@ -574,11 +689,14 @@ Do not automatically spawn reviewer for trivial changes.
 
 Root:
 
-1. read user request
-2. determine execution profile
-3. inspect only enough context to define work boundaries
-4. identify independent workstreams
-5. decide whether dedicated exploration is necessary
+1. read user request and source-of-truth ticket/plan
+2. derive the material acceptance-criteria checklist
+3. classify task risk
+4. determine the execution profile using the risk-aware floor unless explicitly overridden
+5. inspect only enough context to define work boundaries
+6. identify independent workstreams
+7. decide whether dedicated exploration is necessary
+8. decide which independent verification gates will be mandatory
 
 Do not deeply explore work that will immediately be delegated.
 
@@ -614,25 +732,32 @@ If required:
 After implementation workers complete:
 
 1. inspect summarized results
-2. determine whether independent tester materially improves confidence
+2. compare worker claims against the retained acceptance-criteria checklist
+3. determine whether independent testing is optional or mandatory under the Tester policy
 
-If tester is useful:
+If tester is required or useful:
 
-3. spawn Luna tester
-4. use `wait_agent(timeout_ms = 1200000)`
-5. process completed verification
+4. spawn Luna tester with the acceptance criteria and explicit adversarial scenarios
+5. require the tester to look for missing behavior and edge cases, not only regressions already covered by worker tests
+6. use `wait_agent(timeout_ms = 1200000)`
+7. process completed verification
 
 Do not run redundant root tests while tester works.
+
+Do not skip a mandatory tester merely because the worker reported a green test suite.
 
 
 ## Phase 5 — review
 
 Only after implementation and required testing:
 
-1. decide whether Astra reviewer materially improves confidence
-2. if yes, spawn Astra low reviewer
-3. use `wait_agent(timeout_ms = 600000)`
-4. process completed findings once
+1. determine whether independent Astra review is optional or mandatory under the Reviewer policy
+2. if required or useful, spawn Astra low reviewer
+3. give the reviewer the source requirements, acceptance-criteria checklist, implementation summary, and relevant test evidence
+4. instruct the reviewer to search for missing requirements and semantic defects even when tests pass
+5. use `wait_agent(timeout_ms = 600000)`
+6. classify findings as Critical / High / Medium / Low
+7. process completed findings once
 
 
 ## Phase 6 — corrections
@@ -640,11 +765,19 @@ Only after implementation and required testing:
 If corrections are required:
 
 1. batch all known corrections
-2. send one correction assignment to appropriate worker
+2. send one correction assignment to the appropriate worker
 3. use the SAME execution profile unless escalation is justified
 4. avoid one-finding-at-a-time correction loops
-5. use `wait_agent(timeout_ms = 1200000)`
-6. wait for completion
+5. require targeted regression tests for every Critical/High finding and for material Medium findings
+6. use `wait_agent(timeout_ms = 1200000)`
+7. wait for completion
+
+After corrections:
+
+- if any reviewer found a Critical or High issue, a FINAL independent Astra re-review is MANDATORY
+- if the review found 3 or more Medium issues, strongly prefer a final independent re-review
+- the final reviewer must verify both the fixes and the surrounding invariants for regressions
+- do not substitute root self-review for mandatory independent re-review
 
 
 ## Phase 7 — final integration
@@ -700,6 +833,17 @@ Do not blame model capability automatically.
 
 Cost reduction must not replace verification.
 
+The benchmark evidence behind this skill showed that a Cheap-profile worker can dramatically reduce expensive root usage while still miss more product behavior and edge cases than a heavier orchestration flow.
+
+Therefore:
+
+- passing worker tests are necessary but not sufficient
+- independent verification depth must scale with task risk
+- cheap execution must be paired with stronger verification when risk is non-trivial
+- source requirements and acceptance criteria outrank existing tests
+- a green suite does not excuse missing required behavior
+- reviewer findings must feed back into regression tests where practical
+
 For implementation tasks, worker should verify:
 
 - syntax/type correctness
@@ -707,16 +851,17 @@ For implementation tasks, worker should verify:
 - build when relevant
 - acceptance criteria
 - final diff sanity
+- important business invariants
 
-For high-risk work, use independent tester and/or Astra reviewer.
+For risk-sensitive work, independent tester and Astra reviewer requirements above apply.
 
 The preferred optimization is:
 
-cheap execution + strong verification
+cheaper execution + independent, risk-aware verification
 
 not:
 
-cheap execution + no verification.
+cheaper execution + weaker verification.
 
 
 # Context and cost discipline
@@ -771,21 +916,28 @@ Before final response confirm:
 
 - all required workers completed or explicitly failed
 - no required worker is still running
+- every material acceptance criterion is PASS, PARTIAL, FAIL, or explicitly NOT VERIFIED
 - material findings are integrated
-- required verification completed
+- required independent tester/reviewer gates completed
+- mandatory re-review after any Critical/High finding completed
+- targeted regression evidence exists for corrected Critical/High issues
+- unresolved Medium/Low issues are explicitly reported
 - ownership conflicts resolved
 - escalation decisions were explicit
+- unverified browser/E2E/manual/CI acceptance is not presented as completed
 
 
 # Final verification
 
-Root performs only high-value final verification:
+Root performs only high-value final verification after delegated work is complete:
 
 - inspect final integrated diff
+- compare final state with the acceptance-criteria checklist
 - confirm requested behavior
 - confirm important tests
-- check reviewer findings
+- check tester/reviewer findings and their closure status
 - identify validation that could not be performed
+- distinguish code-level PASS from browser/E2E/manual/CI acceptance that remains unverified
 
 Do NOT repeatedly inspect partial worker diffs while workers are active.
 
@@ -800,7 +952,11 @@ Final response should focus on:
 
 - what changed
 - selected execution profile when relevant
-- what was verified
+- task risk level when materially relevant
+- what was independently verified
+- reviewer finding counts by severity when a review ran
+- whether Critical/High findings received final re-review
+- acceptance criteria still PARTIAL / FAIL / NOT VERIFIED
 - important decisions
 - remaining risks
 
