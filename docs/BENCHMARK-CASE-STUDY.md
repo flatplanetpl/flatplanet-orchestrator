@@ -92,10 +92,10 @@ all models:
   responses:      1,124
   total:          150,349,325
 
-primary allowance:
+weekly allowance (backend `primary` on this Pro account):
   19.0% -> 23.0%  (+4 percentage points)
 
-secondary allowance:
+secondary window:
   unavailable
 ```
 
@@ -128,10 +128,10 @@ all models:
   responses:      806
   total:          118,837,138
 
-primary allowance:
+weekly allowance (backend `primary` on this Pro account):
   23.0% -> 23.0%  (no visible increase)
 
-secondary allowance:
+secondary window:
   unavailable
 ```
 
@@ -147,7 +147,7 @@ secondary allowance:
 | Luna total | 89.58M | 117.18M | +30.8% |
 | All-model total | 150.35M | 118.84M | **-21.0%** |
 | Astra share of total tokens | 40.4% | 1.4% | **-39.0 pp** |
-| Visible primary allowance delta | +4 pp | 0 pp visible | not directly convertible to weekly usage |
+| Visible weekly allowance delta (Pro) | +4 pp | 0 pp visible | displayed percentage |
 
 The key result is the collapse in expensive root activity. The optimized run intentionally allowed the cheaper worker to do more work, yet overall tokens still fell by about 21%.
 
@@ -409,12 +409,14 @@ For work involving concurrency, money, inventory integrity, migrations, authoriz
 
 The allowance observations in this case study are specific to the **ChatGPT Pro plan** used for the benchmark.
 
-The script reported:
+For this ChatGPT Pro account, the backend `primary` rate-limit window represented the **7-day / weekly allowance**. The benchmark therefore observed:
 
 ```text
-before: primary 19.0% -> 23.0%
-after:  primary 23.0% -> 23.0%
+before: weekly (primary) 19.0% -> 23.0%   (+4 pp)
+after:  weekly (primary) 23.0% -> 23.0%   (0 pp visible)
 ```
+
+The backend labels `primary` and `secondary` should not be treated as universal semantic names across all Codex configurations; the relevant interpretation is the window duration/account configuration. In this benchmark, `primary` was the weekly window.
 
 This should NOT be interpreted as proof that the optimized run consumed exactly zero allowance.
 
@@ -423,10 +425,10 @@ Reasons:
 - displayed percentages may be rounded
 - usage reporting may lag
 - Codex plan allowance is not publicly documented as a simple token-to-percent formula
-- the secondary/weekly value was unavailable in both reports
+- the secondary window was unavailable in both reports
 - account-wide concurrent usage could affect the same counters
 
-The most reliable conclusions from this case study are therefore the per-thread model/token measurements and the observed root wake-up reduction.
+The weekly percentage is useful as an observed plan-level signal, but the most granular evidence still comes from the per-thread model/token measurements and the observed root wake-up reduction.
 
 ## Practical recommendation
 
