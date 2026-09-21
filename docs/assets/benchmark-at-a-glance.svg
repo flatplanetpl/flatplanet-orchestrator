@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="792" viewBox="0 0 640 792" role="img" aria-labelledby="title desc">
+  <title id="title">Orchestration benchmark at a glance</title>
+  <desc id="desc">ChatGPT Pro case study, Old orchestration versus Cheap profile. Root Astra responses: 455 versus 21 (4.6% of Old). Root Astra tokens: 59.47M versus 1.05M (1.8%). All Astra tokens: 60.77M versus 1.66M (2.7%). Astra share of all tokens: 40.4% versus 1.4%. Total tokens: 150.35M versus 118.84M (79%). Work shift: Astra/Workers 40.4%/59.6% versus 1.4%/98.6%.</desc>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 18px; fill: #1f2328; }
+    .background { fill: #ffffff; stroke: #d1d9e0; }
+    .heading { font-size: 16px; font-weight: 700; }
+    .value { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .muted { fill: #59636e; }
+    .note { font-size: 14px; }
+    .track { fill: #eff2f5; }
+    .old { fill: #818b98; }
+    .cheap { fill: #1a7f37; }
+    .astra { fill: #bc4c00; }
+    .workers { fill: #0969da; }
+    .divider { stroke: #d1d9e0; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #f0f6fc; }
+      .background { fill: #0d1117; stroke: #3d444d; }
+      .muted { fill: #9198a1; }
+      .track { fill: #212830; }
+      .old { fill: #9198a1; }
+      .cheap { fill: #3fb950; }
+      .astra { fill: #f0883e; }
+      .workers { fill: #58a6ff; }
+      .divider { stroke: #3d444d; }
+    }
+  </style>
+  <rect class="background" x="0.5" y="0.5" width="639" height="791" rx="12"/>
+
+  <!-- Count comparisons use Old = 100%; bar widths derive from the displayed counts. -->
+  <g id="root-responses">
+    <text class="heading" x="24" y="32">ROOT ASTRA RESPONSES</text>
+    <text x="24" y="64">Old</text><text class="value" x="204" y="64" text-anchor="end">455</text>
+    <rect class="track" x="232" y="50" width="280" height="16" rx="3"/>
+    <rect class="old" x="232" y="50" width="280" height="16" rx="3"/>
+    <text class="muted" x="616" y="64" text-anchor="end">100%</text>
+    <text x="24" y="94">Cheap</text><text class="value" x="204" y="94" text-anchor="end">21</text>
+    <rect class="track" x="232" y="80" width="280" height="16" rx="3"/>
+    <rect class="cheap" x="232" y="80" width="12.923" height="16" rx="2"/>
+    <text class="muted" x="616" y="94" text-anchor="end">4.6%</text>
+  </g>
+
+  <g id="root-tokens" transform="translate(0 112)">
+    <text class="heading" x="24" y="32">ROOT ASTRA TOKENS</text>
+    <text x="24" y="64">Old</text><text class="value" x="204" y="64" text-anchor="end">59.47M</text>
+    <rect class="track" x="232" y="50" width="280" height="16" rx="3"/>
+    <rect class="old" x="232" y="50" width="280" height="16" rx="3"/>
+    <text class="muted" x="616" y="64" text-anchor="end">100%</text>
+    <text x="24" y="94">Cheap</text><text class="value" x="204" y="94" text-anchor="end">1.05M</text>
+    <rect class="track" x="232" y="80" width="280" height="16" rx="3"/>
+    <rect class="cheap" x="232" y="80" width="4.944" height="16" rx="2"/>
+    <text class="muted" x="616" y="94" text-anchor="end">1.8%</text>
+  </g>
+
+  <g id="all-astra-tokens" transform="translate(0 224)">
+    <text class="heading" x="24" y="32">ALL ASTRA TOKENS</text>
+    <text x="24" y="64">Old</text><text class="value" x="204" y="64" text-anchor="end">60.77M</text>
+    <rect class="track" x="232" y="50" width="280" height="16" rx="3"/>
+    <rect class="old" x="232" y="50" width="280" height="16" rx="3"/>
+    <text class="muted" x="616" y="64" text-anchor="end">100%</text>
+    <text x="24" y="94">Cheap</text><text class="value" x="204" y="94" text-anchor="end">1.66M</text>
+    <rect class="track" x="232" y="80" width="280" height="16" rx="3"/>
+    <rect class="cheap" x="232" y="80" width="7.648" height="16" rx="2"/>
+    <text class="muted" x="616" y="94" text-anchor="end">2.7%</text>
+  </g>
+
+  <!-- Shares use the full token pool = 100%, not Old as the baseline. -->
+  <g id="astra-share" transform="translate(0 336)">
+    <text class="heading" x="24" y="32">ASTRA SHARE OF ALL TOKENS</text>
+    <text x="24" y="64">Old</text><text class="value" x="204" y="64" text-anchor="end">40.4%</text>
+    <rect class="track" x="232" y="50" width="280" height="16" rx="3"/>
+    <rect class="old" x="232" y="50" width="113.12" height="16" rx="3"/>
+    <text x="24" y="94">Cheap</text><text class="value" x="204" y="94" text-anchor="end">1.4%</text>
+    <rect class="track" x="232" y="80" width="280" height="16" rx="3"/>
+    <rect class="cheap" x="232" y="80" width="3.92" height="16" rx="1"/>
+  </g>
+
+  <g id="total-tokens" transform="translate(0 448)">
+    <text class="heading" x="24" y="32">TOTAL TOKENS</text>
+    <text x="24" y="64">Old</text><text class="value" x="204" y="64" text-anchor="end">150.35M</text>
+    <rect class="track" x="232" y="50" width="280" height="16" rx="3"/>
+    <rect class="old" x="232" y="50" width="280" height="16" rx="3"/>
+    <text class="muted" x="616" y="64" text-anchor="end">100%</text>
+    <text x="24" y="94">Cheap</text><text class="value" x="204" y="94" text-anchor="end">118.84M</text>
+    <rect class="track" x="232" y="80" width="280" height="16" rx="3"/>
+    <rect class="cheap" x="232" y="80" width="221.318" height="16" rx="3"/>
+    <text class="muted" x="616" y="94" text-anchor="end">79%</text>
+  </g>
+
+  <line class="divider" x1="24" y1="568" x2="616" y2="568"/>
+  <g id="work-shift">
+    <text class="heading" x="24" y="600">WORK SHIFT</text>
+    <text x="24" y="634">Old</text>
+    <text x="616" y="634" text-anchor="end">Astra 40.4% / Workers 59.6%</text>
+    <rect class="astra" x="24" y="644" width="239.168" height="16"/>
+    <rect class="workers" x="263.168" y="644" width="352.832" height="16"/>
+    <text x="24" y="696">Cheap</text>
+    <text x="616" y="696" text-anchor="end">Astra 1.4% / Workers 98.6%</text>
+    <rect class="astra" x="24" y="706" width="8.288" height="16"/>
+    <rect class="workers" x="32.288" y="706" width="583.712" height="16"/>
+  </g>
+  <text class="muted note" x="24" y="760">Count bars: Old = 100%. Share bars: all tokens = 100%.</text>
+</svg>
