@@ -56,8 +56,8 @@ The root is explicitly told not to poll, inspect partial worker-owned changes, o
 - Codex CLI: `0.155.1`
 - Same repository and feature area
 - Root model: GPT-6 Astra / medium
-- Before worker strategy: Luna subagents with an actively polling root
-- After worker strategy: one long-running GPT-5.6 Luna / max worker plus GPT-6 Astra / low reviewer
+- Old orchestration worker strategy: Luna subagents with an actively polling root
+- Cheap profile worker strategy: one long-running GPT-5.6 Luna / max worker plus GPT-6 Astra / low reviewer
 - Token accounting source: `scripts/token_usage.py --latest`
 - Prompt cache hit rate:
   - before: 98.2%
@@ -199,8 +199,8 @@ Workers 98.6%  █████████████████████�
 
 ```text
 All-model tokens
-Before 150.35M  ██████████████████████████████████████████████████  100%
-After  118.84M  ███████████████████████████████████████             79%
+Old   150.35M  ██████████████████████████████████████████████████  100%
+Cheap 118.84M  ███████████████████████████████████████             79%
 
 Despite the worker doing MORE work:
 Luna before   89.58M  ██████████████████████████████████████
@@ -245,8 +245,8 @@ CHEAP PROFILE
 ### Root wake-up frequency
 
 ```text
-Before: 4.26 root responses/min  ██████████████████████████████████████████████████
-After : 0.15 root responses/min  ██
+Old:   4.26 root responses/min  ██████████████████████████████████████████████████
+Cheap: 0.15 root responses/min  ██
 
 Approximate reduction: 96.5%
 ```
