@@ -13,11 +13,11 @@ The goal is simple:
 
 ## What you can gain
 
-In a real before/after run on the same non-trivial implementation task, changing from an actively polling Astra orchestrator to Flatplanet Orchestrator produced:
+In a real comparison of the same non-trivial implementation task, the **Old orchestration** was compared with the **Cheap profile** (`GPT-5.6 Luna / max` worker):
 
 **Benchmark plan:** ChatGPT Pro.
 
-| Metric | Before | After | Change |
+| Metric | Old orchestration | Cheap profile | Change |
 |---|---:|---:|---:|
 | Root Astra responses | 455 | 21 | **-95.4%** |
 | Root Astra tokens | 59.47M | 1.05M | **-98.2%** |
@@ -34,39 +34,70 @@ The important shift is not merely "fewer tokens." It is **moving execution away 
 
 ```text
 ROOT ASTRA RESPONSES
-Before  455 |██████████████████████████████████████████████████| 100%
-After    21 |██                                                |   4.6%
+Old    455 |██████████████████████████████████████████████████| 100%
+Cheap   21 |██                                                |   4.6%
 
 ROOT ASTRA TOKENS
-Before 59.47M |██████████████████████████████████████████████████| 100%
-After   1.05M |█                                                 |   1.8%
+Old   59.47M |██████████████████████████████████████████████████| 100%
+Cheap  1.05M |█                                                 |   1.8%
 
 ALL ASTRA TOKENS
-Before 60.77M |██████████████████████████████████████████████████| 100%
-After   1.66M |█                                                 |   2.7%
+Old   60.77M |██████████████████████████████████████████████████| 100%
+Cheap  1.66M |█                                                 |   2.7%
 
 ASTRA SHARE OF ALL TOKENS
-Before 40.4% |████████████████████                              |
-After   1.4% |█                                                 |
+Old   40.4% |████████████████████                              |
+Cheap  1.4% |█                                                 |
 
 TOTAL TOKENS
-Before 150.35M |██████████████████████████████████████████████████| 100%
-After  118.84M |███████████████████████████████████████           |  79%
+Old   150.35M |██████████████████████████████████████████████████| 100%
+Cheap 118.84M |███████████████████████████████████████           |  79%
 
 WORK SHIFT
-Before | Astra ████████████████████ 40.4% | Workers ██████████████████████████████ 59.6% |
-After  | Astra █ 1.4%                  | Workers █████████████████████████████████████████████████ 98.6% |
+Old    | Astra ████████████████████ 40.4% | Workers ██████████████████████████████ 59.6% |
+Cheap  | Astra █ 1.4%                  | Workers █████████████████████████████████████████████████ 98.6% |
 ```
 
 The goal is not to eliminate worker compute. The goal is to make **expensive orchestration sparse** and let cheaper workers do the long-running execution.
 
-The optimized run took longer wall-clock time (151m42s vs 106m56s), but the Astra root almost stopped consuming context while the worker was active.
+The Cheap profile run took longer wall-clock time (151m42s vs 106m56s), but the Astra root almost stopped consuming context while the worker was active.
 
-Quality was not ignored: the independent Astra reviewer found **2 high + 4 medium** issues; all were fixed, with broad backend/frontend verification afterward.
+A later independent branch-to-branch quality review found that **Old orchestration was technically stronger by a moderate margin**. The final reviewed branches had **0 High / 5 Medium / 1 Low** findings for Old orchestration versus **1 High / 8 Medium / 2 Low** for the Cheap profile. Neither branch was considered ready to merge without additional fixes.
 
 > These numbers are one measured case study, not a guaranteed savings ratio. On this ChatGPT Pro account, the backend `primary` window represented the 7-day/weekly allowance. The secondary window was unavailable in these captures. Displayed allowance percentages may be rounded or delayed.
 
 See **[Benchmark case study](docs/BENCHMARK-CASE-STUDY.md)** for the complete methodology, raw numbers, quality findings, tests, and limitations.
+
+### Cost vs quality
+
+The benchmark shows a clear trade-off:
+
+```text
+USAGE / ORCHESTRATION EFFICIENCY
+
+Old orchestration  ██████████████████████████████████████████████  expensive
+Cheap profile      █                                                   much lower Astra usage
+
+
+IMPLEMENTATION QUALITY (independent review)
+
+Old orchestration  ██████████████████████████████████████          stronger
+Cheap profile      ███████████████████████████████                 weaker
+```
+
+Independent review summary:
+
+| Finding severity | Old orchestration | Cheap profile |
+|---|---:|---:|
+| Critical | 0 | 0 |
+| High | **0** | **1** |
+| Medium | **5** | **8** |
+| Low | **1** | **2** |
+
+The Old orchestration branch had stronger coverage around concurrency, delayed responses, autosave behavior, currencies, and editor recovery. The Cheap profile still had a correct transactional core, but missed more product and edge-case behavior.
+
+This is why `cheap` is intentionally **not** the default production profile. Use `balanced` (Terra High) for normal production work and reserve `cheap` for bounded, lower-risk tasks.
+
 
 ## Execution profiles
 
