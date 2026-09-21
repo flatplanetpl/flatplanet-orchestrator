@@ -10,6 +10,31 @@ The goal is simple:
 - avoid duplicate work between the root and subagents,
 - choose the worker model per task with a simple execution profile.
 
+
+## What you can gain
+
+In a real before/after run on the same non-trivial implementation task, changing from an actively polling Astra orchestrator to Flatplanet Orchestrator produced:
+
+| Metric | Before | After | Change |
+|---|---:|---:|---:|
+| Root Astra responses | 455 | 21 | **-95.4%** |
+| Root Astra tokens | 59.47M | 1.05M | **-98.2%** |
+| All Astra tokens | 60.77M | 1.66M | **-97.3%** |
+| Astra share of all tokens | 40.4% | 1.4% | **-39.0 pp** |
+| Total tokens | 150.35M | 118.84M | **-21.0%** |
+| Worker tokens | 89.58M | 117.18M | **+30.8%** |
+| Visible primary allowance delta | +4 pp | 0 pp visible | see caveats |
+
+The important shift is not merely "fewer tokens." It is **moving execution away from the expensive root model and into the worker model**, while keeping Astra for planning and review.
+
+The optimized run took longer wall-clock time (151m42s vs 106m56s), but the Astra root almost stopped consuming context while the worker was active.
+
+Quality was not ignored: the independent Astra reviewer found **2 high + 4 medium** issues; all were fixed, with broad backend/frontend verification afterward.
+
+> These numbers are one measured case study, not a guaranteed savings ratio. Codex allowance accounting is not publicly reducible to a simple token formula, and the secondary/weekly counter was unavailable in this run.
+
+See **[Benchmark case study](docs/BENCHMARK-CASE-STUDY.md)** for the complete methodology, raw numbers, quality findings, tests, and limitations.
+
 ## Execution profiles
 
 | Profile | Worker | Reasoning | Typical use |
