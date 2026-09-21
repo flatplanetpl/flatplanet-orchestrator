@@ -1,5 +1,7 @@
 # Benchmark Case Study: Reducing Astra Orchestration Usage
 
+**Quick navigation:** [Setup](#benchmark-environment) · [Results](#old-orchestration-vs-cheap-profile) · [Charts](#visual-comparison) · [Quality](#independent-quality-comparison) · [Verification](#verification-performed) · [Caveats](#allowance-caveats) · [README](../README.md)
+
 ## Summary
 
 This case study compares two executions of the same non-trivial Codex implementation task:
