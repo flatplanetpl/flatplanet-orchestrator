@@ -67,7 +67,7 @@ The runs were not laboratory-identical. The optimized run took longer and used a
 
 ## Raw results
 
-### Before: original orchestration
+### Old orchestration
 
 ```text
 wall time: 106m56s
@@ -99,7 +99,7 @@ secondary window:
   unavailable
 ```
 
-### After: Flatplanet Orchestrator
+### Cheap profile (Luna Max)
 
 ```text
 wall time: 151m42s
@@ -135,9 +135,9 @@ secondary window:
   unavailable
 ```
 
-## Before vs after
+## Old orchestration vs Cheap profile
 
-| Metric | Before | After | Change |
+| Metric | Old orchestration | Cheap profile | Change |
 |---|---:|---:|---:|
 | Wall time | 106m56s | 151m42s | +41.9% |
 | Root Astra responses | 455 | 21 | **-95.4%** |
@@ -149,7 +149,7 @@ secondary window:
 | Astra share of total tokens | 40.4% | 1.4% | **-39.0 pp** |
 | Visible weekly allowance delta (Pro) | +4 pp | 0 pp visible | displayed percentage |
 
-The key result is the collapse in expensive root activity. The optimized run intentionally allowed the cheaper worker to do more work, yet overall tokens still fell by about 21%.
+The key result is the collapse in expensive root activity. The Cheap profile intentionally allowed the cheaper worker to do more work, yet overall tokens still fell by about 21%.
 
 
 ## Visual comparison
@@ -158,24 +158,24 @@ The key result is the collapse in expensive root activity. The optimized run int
 
 ```text
 Root Astra responses
-Before  455  ██████████████████████████████████████████████████  100.0%
-After    21  ██                                                    4.6%
+Old    455  ██████████████████████████████████████████████████  100.0%
+Cheap   21  ██                                                    4.6%
              └──────────────────────────────────────────────────┘
              95.4% reduction
 ```
 
 ```text
 Root Astra total tokens
-Before  59.47M  ██████████████████████████████████████████████████  100.0%
-After    1.05M  █                                                     1.8%
+Old    59.47M  ██████████████████████████████████████████████████  100.0%
+Cheap   1.05M  █                                                     1.8%
                 └──────────────────────────────────────────────────┘
                 98.2% reduction
 ```
 
 ```text
 Root Astra cached input
-Before  58.76M  ██████████████████████████████████████████████████  100.0%
-After    0.95M  █                                                     1.6%
+Old    58.76M  ██████████████████████████████████████████████████  100.0%
+Cheap   0.95M  █                                                     1.6%
                 └──────────────────────────────────────────────────┘
                 98.4% reduction
 ```
@@ -183,13 +183,13 @@ After    0.95M  █                                                     1.6%
 ### Where the tokens went
 
 ```text
-BEFORE
+OLD ORCHESTRATION
 
 Astra   40.4%  ████████████████████
 Workers 59.6%  ██████████████████████████████
 
 
-AFTER
+CHEAP PROFILE
 
 Astra    1.4%  █
 Workers 98.6%  █████████████████████████████████████████████████
@@ -210,7 +210,7 @@ Luna after   117.18M  ███████████████████�
 This is the core optimization:
 
 ```text
-BEFORE
+OLD ORCHESTRATION
 ┌─────────────────────────────────────────────────────────────────┐
 │ ASTRA ROOT                                                      │
 │ plan -> wait -> wake -> inspect -> wait -> wake -> diff -> ... │
@@ -222,7 +222,7 @@ BEFORE
                          Luna subagents
 
 
-AFTER
+CHEAP PROFILE
 ┌────────────────────┐
 │ ASTRA ROOT         │
 │ plan + delegate    │
@@ -260,7 +260,7 @@ The original root produced approximately:
 ≈ 4.26 root responses per minute
 ```
 
-The optimized root produced:
+The Cheap profile root produced:
 
 ```text
 21 responses / 141m49s root-thread duration
@@ -269,7 +269,7 @@ The optimized root produced:
 
 That is roughly a 96.5% reduction in root response frequency.
 
-The optimized trace showed the desired pattern:
+The Cheap profile trace showed the desired pattern:
 
 ```text
 Started worker
@@ -281,46 +281,123 @@ root resumes
 
 instead of repeated short `wait_agent` wake-ups.
 
-## Quality results
+## Independent quality comparison
 
-Cost optimization is only useful if implementation quality remains acceptable.
+A separate branch-to-branch review was performed after both implementations were complete.
 
-The independent GPT-6 Astra / low reviewer reported:
+The reviewer evaluated each branch independently against the same ticket/specification before comparing them directly. The branch labels used during review were neutralized to reduce naming bias.
 
-- Critical: 0
-- High: 2
-- Medium: 4
-- Low/minor: 0
+The result:
 
-All six reviewer findings were fixed.
+> **Old orchestration was technically stronger by a moderate margin. Neither branch was considered ready to merge without additional fixes.**
 
-### High findings
+Both implementations had a sound transactional foundation: persistent line snapshots, tenant-scoped APIs, transactional finalization, idempotent retry behavior, and separation of invoice source amounts from stock-increase quantity.
 
-1. **Concurrent stock update risk**
-   - A tracked stock record was loaded before acquiring the relevant lock.
-   - Concurrent finalizations could lose stock updates.
-   - Fixed; a concurrency regression test passed.
+### Findings
 
-2. **Incorrect financial totals when warehouse quantity differed from KSeF quantity**
-   - Warehouse quantity was multiplied by the KSeF source unit price.
-   - This could change source financial totals when units differed.
-   - Fixed; source amounts are now preserved independently from stock quantity.
+| Severity | Old orchestration | Cheap profile |
+|---|---:|---:|
+| Critical | 0 | 0 |
+| High | **0** | **1** |
+| Medium | **5** | **8** |
+| Low | **1** | **2** |
 
-### Medium findings
+```text
+QUALITY FINDINGS
+(lower is better)
 
-1. Autosave could restart after a network error or HTTP 409 and bypass explicit conflict resolution.
-2. EUR receipts/lines were rendered using PLN formatting.
-3. Manual receipts still modified `OperationalIssue`, contrary to the plan.
-4. Public manual-receipt input exposed financial overrides that could create inconsistent totals.
+Old orchestration
+Critical  0
+High      0
+Medium    5  █████
+Low       1  █
 
-All were fixed.
+Cheap profile
+Critical  0
+High      1  █
+Medium    8  ████████
+Low       2  ██
+```
 
-The root later identified and fixed two additional concerns:
+### Where Old orchestration was stronger
 
-- mapping keys containing `|`
-- concurrent mapping creation
+The Old orchestration implementation was stronger in:
 
-The sixth reviewer finding and the two root-review concerns did not receive another full independent reviewer pass.
+- warehouse unit-price semantics and purchase-price currency
+- nullable/non-numeric source VAT handling
+- real ISO 4217 currency validation
+- mixed-currency behavior
+- contextual supplier creation
+- editor recovery and conflict handling
+- concurrency coverage
+- delayed-response/autosave coverage
+
+It also had substantially stronger editor and concurrency-oriented tests.
+
+### Where Cheap profile was stronger
+
+The Cheap profile implementation had several useful strengths:
+
+- reused a shared receipt-creation path instead of duplicating as much receipt/stock logic
+- preserved more accurate business error messages during finalization
+- returned only open drafts in the "to receive" list
+- refreshed current suggestions when reading a draft
+- changed fewer non-generated source lines overall
+
+### Most important Cheap-profile defect
+
+The independent review found one High-severity issue in the Cheap profile: incorrect warehouse purchase-price semantics when source quantity/unit and stock quantity/unit differed.
+
+Example:
+
+```text
+Source: 1 case for 100 EUR
+Stock:  20 bottles
+
+Correct operational stock unit price: 5 EUR / bottle
+Cheap-profile behavior could preserve UnitNetPrice=100 on Quantity=20
+```
+
+The source financial total remained correct, but the stored/consumed operational purchase price could be wrong and could lose its currency semantics.
+
+### Test-quality comparison
+
+| Area | Old orchestration | Cheap profile |
+|---|---:|---:|
+| Editor component tests | **12** | 3 |
+| Dedicated autosave queue tests | **Yes** | No |
+| Changes during in-flight save | **Covered** | No dedicated test |
+| Two writes with same version | **Covered** | No dedicated independent-context test |
+| Concurrent finalization of same draft | **Covered** | No dedicated test |
+| Two drafts updating same stock | Covered | Covered |
+| Retry finalization | Covered | Covered |
+| Rollback | Covered | Covered |
+| Delayed response / commit race | **Barrier/interceptor test** | No |
+
+The independent review concluded that Old orchestration had clearly stronger coverage around concurrency and delayed responses.
+
+### Interpretation
+
+The Cheap profile delivered the dramatic usage reduction measured in this case study, but the quality comparison shows that **lower orchestration cost did not preserve identical implementation quality** on this high-risk ticket.
+
+That is why Flatplanet Orchestrator uses:
+
+- `cheap` / Luna Max for bounded, lower-risk tasks
+- `balanced` / Terra High as the default production profile
+- `strong` / Sol High for difficult debugging/refactoring
+- `max` / Astra for exceptional cases
+
+For tasks involving multiple of the following, use at least `balanced`:
+
+- financial calculations
+- inventory integrity
+- concurrency
+- migrations
+- authorization/security
+- cross-tenant isolation
+- irreversible state transitions
+
+If an independent reviewer reports any High-severity finding, perform a final independent re-review after corrections.
 
 ## Verification performed
 
@@ -370,8 +447,8 @@ The ticket therefore remained `IN_PROGRESS`.
 The orchestration change successfully moved almost all execution activity away from the expensive Astra root:
 
 ```text
-Before: Astra = 40.4% of all tokens
-After:  Astra =  1.4% of all tokens
+Old orchestration: Astra = 40.4% of all tokens
+Cheap profile:     Astra =  1.4% of all tokens
 ```
 
 The worker consumed more tokens, but on the cheaper model. This is intentional.
@@ -380,7 +457,7 @@ The root's cached input dropped from 58.76M to 0.95M, strongly indicating that r
 
 ### What did not become free
 
-The optimized run still used substantial worker compute:
+The Cheap profile still used substantial worker compute:
 
 ```text
 117.18M Luna tokens
@@ -394,7 +471,7 @@ Flatplanet Orchestrator is not a "use fewer tokens at all costs" strategy. It is
 
 ### Quality trade-off
 
-The Luna worker did not produce a flawless first pass. Two high-severity and four medium-severity issues were discovered by independent review.
+The Cheap profile did not match the implementation quality of the Old orchestration branch in the later independent branch-to-branch review.
 
 That result supports the profile model used by Flatplanet Orchestrator:
 
@@ -412,13 +489,13 @@ The allowance observations in this case study are specific to the **ChatGPT Pro 
 For this ChatGPT Pro account, the backend `primary` rate-limit window represented the **7-day / weekly allowance**. The benchmark therefore observed:
 
 ```text
-before: weekly (primary) 19.0% -> 23.0%   (+4 pp)
-after:  weekly (primary) 23.0% -> 23.0%   (0 pp visible)
+old:   weekly (primary) 19.0% -> 23.0%   (+4 pp)
+cheap: weekly (primary) 23.0% -> 23.0%   (0 pp visible)
 ```
 
 The backend labels `primary` and `secondary` should not be treated as universal semantic names across all Codex configurations; the relevant interpretation is the window duration/account configuration. In this benchmark, `primary` was the weekly window.
 
-This should NOT be interpreted as proof that the optimized run consumed exactly zero allowance.
+This should NOT be interpreted as proof that the Cheap profile consumed exactly zero allowance.
 
 Reasons:
 
@@ -456,7 +533,7 @@ If a reviewer reports a high-severity finding, a final independent re-review aft
 
 ## Bottom line
 
-In this case study, Flatplanet Orchestrator changed the workload from:
+In this case study, the Cheap profile changed the workload from:
 
 ```text
 expensive Astra root continuously orchestrating
@@ -477,6 +554,6 @@ Measured result:
 - **97.3% fewer Astra tokens overall**
 - **21.0% fewer total tokens**
 - **Astra share reduced from 40.4% to 1.4%**
-- quality issues were found by independent review and corrected
+- independent branch comparison still found the Old orchestration implementation technically stronger
 
-The primary lesson is that **orchestration behavior can matter as much as model choice**.
+The primary lesson is that **orchestration behavior can dramatically reduce expensive usage, but worker-model choice and independent verification still materially affect implementation quality**.
