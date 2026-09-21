@@ -152,7 +152,8 @@ Unless the user explicitly overrides them:
 - explorer: GPT-5.6 Luna / max
 - researcher: GPT-5.6 Luna / max
 - tester: GPT-5.6 Luna / max
-- reviewer: GPT-6 Astra / low
+- reviewer model: GPT-6 Astra
+- reviewer reasoning: dynamic, selected from task/review risk
 
 Only implementation workers change according to the execution profile.
 
@@ -348,7 +349,7 @@ Use:
 Use:
 
 - model: `gpt-6-astra`
-- reasoning: `low`
+- reasoning: select dynamically using the Reviewer Effort Policy below
 
 ## Worker
 
@@ -615,6 +616,57 @@ Use for:
 Return final concise findings only.
 
 
+# Reviewer Effort Policy — DYNAMIC
+
+The reviewer always uses `gpt-6-astra`, but reviewer reasoning effort MUST scale with review risk.
+
+## Use reviewer effort: `low`
+
+Use `low` only when ALL of the following are true:
+
+- the change is low-risk or ordinary production work
+- there are no material financial/currency semantics
+- there are no inventory/data-integrity invariants
+- there is no concurrency/locking/idempotency risk
+- there are no migrations/backfills with production-data implications
+- there is no security/authorization/cross-tenant risk
+- there are no irreversible state transitions
+- there is no complex autosave/conflict/delayed-response behavior
+- the implementation was not forced onto `cheap` below the risk-aware recommendation
+- this is not a final re-review after a Critical/High finding
+
+## Use reviewer effort: `medium`
+
+Use `medium` when ANY of the following are true:
+
+- financial calculations, prices, taxes, or currency semantics are involved
+- inventory/stock/data integrity is involved
+- concurrency, locking, races, retries, or idempotency are involved
+- migrations, backfills, or historical-data compatibility are involved
+- security, authorization, permissions, or cross-tenant isolation are involved
+- irreversible or externally visible state transitions are involved
+- optimistic concurrency, autosave, conflict resolution, or delayed responses are involved
+- multiple interacting risk signals exist
+- the user explicitly selected `cheap` for a task whose risk-aware floor would be `balanced` or higher
+- the first independent review reports any Critical or High finding
+- a final independent re-review is required after correcting a Critical/High finding
+- the reviewer must validate subtle business semantics that passing tests could easily encode incorrectly
+
+Do NOT use reviewer `high` or `max` by default.
+
+If `medium` review itself reports a genuinely difficult unresolved reasoning problem, escalate only with explicit justification or user request.
+
+Reviewer effort is independent from worker profile.
+
+Examples:
+
+- `cheap` worker + low-risk UI cleanup -> Astra reviewer low if review is needed
+- `balanced` worker + ordinary multi-file feature -> Astra reviewer low or medium based on risk signals
+- any worker + money/inventory/concurrency/migration/security -> Astra reviewer medium
+- `cheap` worker used below recommended risk floor -> Astra reviewer medium
+- any corrected Critical/High finding -> final Astra reviewer medium
+
+
 ## Reviewer
 
 Use Astra reviewer when independent high-quality review materially improves confidence.
@@ -752,12 +804,13 @@ Do not skip a mandatory tester merely because the worker reported a green test s
 Only after implementation and required testing:
 
 1. determine whether independent Astra review is optional or mandatory under the Reviewer policy
-2. if required or useful, spawn Astra low reviewer
-3. give the reviewer the source requirements, acceptance-criteria checklist, implementation summary, and relevant test evidence
-4. instruct the reviewer to search for missing requirements and semantic defects even when tests pass
-5. use `wait_agent(timeout_ms = 600000)`
-6. classify findings as Critical / High / Medium / Low
-7. process completed findings once
+2. select reviewer reasoning effort using the Reviewer Effort Policy
+3. if required or useful, spawn `gpt-6-astra` reviewer with the selected explicit reasoning effort
+4. give the reviewer the source requirements, acceptance-criteria checklist, implementation summary, and relevant test evidence
+5. instruct the reviewer to search for missing requirements and semantic defects even when tests pass
+6. use `wait_agent(timeout_ms = 600000)`
+7. classify findings as Critical / High / Medium / Low
+8. process completed findings once
 
 
 ## Phase 6 — corrections
@@ -775,7 +828,8 @@ If corrections are required:
 After corrections:
 
 - if any reviewer found a Critical or High issue, a FINAL independent Astra re-review is MANDATORY
-- if the review found 3 or more Medium issues, strongly prefer a final independent re-review
+- that mandatory final re-review MUST use `gpt-6-astra` with `medium` reasoning
+- if the review found 3 or more Medium issues, strongly prefer a final independent re-review; use `medium` when the issues involve interacting business/state invariants, otherwise `low` may be sufficient
 - the final reviewer must verify both the fixes and the surrounding invariants for regressions
 - do not substitute root self-review for mandatory independent re-review
 
