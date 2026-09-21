@@ -27,6 +27,37 @@ In a real before/after run on the same non-trivial implementation task, changing
 
 The important shift is not merely "fewer tokens." It is **moving execution away from the expensive root model and into the worker model**, while keeping Astra for planning and review.
 
+
+### At a glance
+
+```text
+ROOT ASTRA RESPONSES
+Before  455 |██████████████████████████████████████████████████| 100%
+After    21 |██                                                |   4.6%
+
+ROOT ASTRA TOKENS
+Before 59.47M |██████████████████████████████████████████████████| 100%
+After   1.05M |█                                                 |   1.8%
+
+ALL ASTRA TOKENS
+Before 60.77M |██████████████████████████████████████████████████| 100%
+After   1.66M |█                                                 |   2.7%
+
+ASTRA SHARE OF ALL TOKENS
+Before 40.4% |████████████████████                              |
+After   1.4% |█                                                 |
+
+TOTAL TOKENS
+Before 150.35M |██████████████████████████████████████████████████| 100%
+After  118.84M |███████████████████████████████████████           |  79%
+
+WORK SHIFT
+Before | Astra ████████████████████ 40.4% | Workers ██████████████████████████████ 59.6% |
+After  | Astra █ 1.4%                  | Workers █████████████████████████████████████████████████ 98.6% |
+```
+
+The goal is not to eliminate worker compute. The goal is to make **expensive orchestration sparse** and let cheaper workers do the long-running execution.
+
 The optimized run took longer wall-clock time (151m42s vs 106m56s), but the Astra root almost stopped consuming context while the worker was active.
 
 Quality was not ignored: the independent Astra reviewer found **2 high + 4 medium** issues; all were fixed, with broad backend/frontend verification afterward.
