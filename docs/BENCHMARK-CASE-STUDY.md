@@ -150,6 +150,106 @@ secondary allowance:
 
 The key result is the collapse in expensive root activity. The optimized run intentionally allowed the cheaper worker to do more work, yet overall tokens still fell by about 21%.
 
+
+## Visual comparison
+
+### Expensive root activity
+
+```text
+Root Astra responses
+Before  455  ██████████████████████████████████████████████████  100.0%
+After    21  ██                                                    4.6%
+             └──────────────────────────────────────────────────┘
+             95.4% reduction
+```
+
+```text
+Root Astra total tokens
+Before  59.47M  ██████████████████████████████████████████████████  100.0%
+After    1.05M  █                                                     1.8%
+                └──────────────────────────────────────────────────┘
+                98.2% reduction
+```
+
+```text
+Root Astra cached input
+Before  58.76M  ██████████████████████████████████████████████████  100.0%
+After    0.95M  █                                                     1.6%
+                └──────────────────────────────────────────────────┘
+                98.4% reduction
+```
+
+### Where the tokens went
+
+```text
+BEFORE
+
+Astra   40.4%  ████████████████████
+Workers 59.6%  ██████████████████████████████
+
+
+AFTER
+
+Astra    1.4%  █
+Workers 98.6%  █████████████████████████████████████████████████
+```
+
+### Total compute
+
+```text
+All-model tokens
+Before 150.35M  ██████████████████████████████████████████████████  100%
+After  118.84M  ███████████████████████████████████████             79%
+
+Despite the worker doing MORE work:
+Luna before   89.58M  ██████████████████████████████████████
+Luna after   117.18M  ██████████████████████████████████████████████
+```
+
+This is the core optimization:
+
+```text
+BEFORE
+┌─────────────────────────────────────────────────────────────────┐
+│ ASTRA ROOT                                                      │
+│ plan -> wait -> wake -> inspect -> wait -> wake -> diff -> ... │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │
+                       frequent expensive turns
+                                │
+                                ▼
+                         Luna subagents
+
+
+AFTER
+┌────────────────────┐
+│ ASTRA ROOT         │
+│ plan + delegate    │
+└─────────┬──────────┘
+          │
+          │ one long wait
+          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ WORKER                                                          │
+│ explore -> implement -> test -> fix -> verify                  │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ completed result
+                                ▼
+                         ┌───────────────┐
+                         │ ASTRA REVIEW  │
+                         │ selective     │
+                         └───────────────┘
+```
+
+### Root wake-up frequency
+
+```text
+Before: 4.26 root responses/min  ██████████████████████████████████████████████████
+After : 0.15 root responses/min  ██
+
+Approximate reduction: 96.5%
+```
+
 ## Root wake-up behavior
 
 The original root produced approximately:
