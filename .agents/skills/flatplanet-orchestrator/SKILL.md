@@ -667,6 +667,94 @@ Examples:
 - any corrected Critical/High finding -> final Astra reviewer medium
 
 
+# Blind / Adversarial Reviewer Policy
+
+Independent review MUST minimize anchoring and confirmation bias.
+
+For the FIRST independent review pass, the reviewer should receive:
+
+- the original user request
+- source-of-truth ticket / plan / specification
+- the retained acceptance-criteria checklist
+- the final code/diff or repository state to inspect
+- access to relevant tests and test code
+
+The reviewer should NOT receive, before forming its own findings:
+
+- the worker's narrative summary of what was implemented
+- the worker's claim that requirements are complete
+- the worker's interpretation of which areas are correct
+- the worker's list of "important" files as a substitute for independent inspection
+- a statement that the test suite is green as evidence that the implementation is correct
+- the worker model, execution profile, or any suggestion that a cheaper/stronger model should be expected to perform better or worse
+- previous root conclusions that could bias the first-pass assessment
+
+The root may use worker summaries for orchestration, but MUST NOT use them to prime the independent reviewer.
+
+The reviewer must work from first principles:
+
+1. derive expected behavior from the source requirements
+2. inspect the implementation independently
+3. inspect tests independently
+4. identify missing requirements, semantic errors, unsafe assumptions, and untested failure modes
+5. attempt to construct concrete counterexamples that would falsify correctness
+6. only then compare findings with available verification evidence
+
+The reviewer MUST behave adversarially:
+
+- try to prove the implementation wrong, not merely confirm it
+- search for cases where tests pass while business semantics are wrong
+- look for missing behavior that has no test at all
+- look for transformations that preserve numeric validity but change semantic meaning
+- look for stale state, delayed response, retry, rollback, and concurrency failures
+- look for boundary values, nullable/special values, invalid-but-well-formed values, and historical-data edge cases
+- inspect both happy paths and failure/recovery paths
+
+When useful, the reviewer should state a concrete failure scenario for each material finding.
+
+## Review evidence ordering
+
+For the first independent review, use this order:
+
+```text
+SPEC / ACCEPTANCE CRITERIA
+          ↓
+FINAL IMPLEMENTATION
+          ↓
+TEST CODE
+          ↓
+ADVERSARIAL FINDINGS
+          ↓
+TEST / BUILD RESULTS
+```
+
+Do NOT use this order:
+
+```text
+WORKER SUMMARY
+     ↓
+"TESTS PASSED"
+     ↓
+REVIEWER CONFIRMS
+```
+
+Raw test/build results may be consulted after the reviewer has independently reasoned about required behavior and likely failure modes.
+
+## Re-review after fixes
+
+A re-review after corrections is not fully blind because previous findings must be verified.
+
+For re-review:
+
+- provide the previous findings and the corresponding claimed fixes
+- require explicit closure status for each previous finding
+- also require a fresh adversarial scan for regressions and newly introduced defects
+- do not limit the reviewer to checking only the patched lines
+- do not tell the reviewer that a finding is "fixed" as a fact; describe it as a claimed fix to verify
+
+Mandatory final re-review after Critical/High findings must follow this policy and use the reasoning effort selected by the Reviewer Effort Policy.
+
+
 ## Reviewer
 
 Use Astra reviewer when independent high-quality review materially improves confidence.
@@ -806,11 +894,13 @@ Only after implementation and required testing:
 1. determine whether independent Astra review is optional or mandatory under the Reviewer policy
 2. select reviewer reasoning effort using the Reviewer Effort Policy
 3. if required or useful, spawn `gpt-6-astra` reviewer with the selected explicit reasoning effort
-4. give the reviewer the source requirements, acceptance-criteria checklist, implementation summary, and relevant test evidence
-5. instruct the reviewer to search for missing requirements and semantic defects even when tests pass
-6. use `wait_agent(timeout_ms = 600000)`
-7. classify findings as Critical / High / Medium / Low
-8. process completed findings once
+4. follow the Blind / Adversarial Reviewer Policy: provide source requirements, acceptance criteria, and repository/diff access, but do not prime the reviewer with the worker's implementation narrative or claimed correctness
+5. require the reviewer to derive expected behavior independently, inspect tests independently, and actively construct failure scenarios
+6. only after first-principles analysis may the reviewer use raw test/build results as supporting evidence
+7. use `wait_agent(timeout_ms = 600000)`
+8. classify findings as Critical / High / Medium / Low
+9. require a concrete failure scenario for each material finding when practical
+10. process completed findings once
 
 
 ## Phase 6 — corrections
@@ -930,6 +1020,8 @@ The expensive root context should mainly contain:
 - test results
 - reviewer findings
 - unresolved risks
+
+Worker summaries may remain in the root context, but the root must not forward them as framing/context to a first-pass independent reviewer when doing so could anchor the review.
 
 Avoid:
 
