@@ -15,6 +15,8 @@ The goal is simple:
 
 In a real before/after run on the same non-trivial implementation task, changing from an actively polling Astra orchestrator to Flatplanet Orchestrator produced:
 
+**Benchmark plan:** ChatGPT Pro.
+
 | Metric | Before | After | Change |
 |---|---:|---:|---:|
 | Root Astra responses | 455 | 21 | **-95.4%** |
