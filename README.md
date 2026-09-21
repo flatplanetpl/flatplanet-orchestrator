@@ -114,7 +114,7 @@ Fixed roles by default:
 - explorer: GPT-5.6 Luna / max
 - researcher: GPT-5.6 Luna / max
 - tester: GPT-5.6 Luna / max
-- reviewer: GPT-6 Astra / low
+- reviewer: GPT-6 Astra / dynamic effort (`low` for low-risk review, `medium` for high-risk review and final re-review after High/Critical findings)
 
 ## Install in a repository
 
@@ -154,6 +154,20 @@ Explicit worker override:
 ```text
 $flatplanet-orchestrator worker=terra effort=high implement the ticket
 ```
+
+### Dynamic reviewer effort
+
+Reviewer cost also scales with risk:
+
+```text
+low-risk change                         -> Astra reviewer / low
+money, inventory, concurrency,
+migrations, security, cross-tenant     -> Astra reviewer / medium
+Cheap profile below risk-aware floor   -> Astra reviewer / medium
+fix after Critical/High finding        -> final Astra reviewer / medium
+```
+
+This keeps routine review inexpensive while using stronger reasoning where the quality benchmark showed it matters.
 
 ## Why this exists
 
