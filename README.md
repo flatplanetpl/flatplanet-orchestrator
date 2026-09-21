@@ -2,7 +2,7 @@
 
 Cost-efficient multi-agent orchestration skill for OpenAI Codex.
 
-**Quick navigation:** [Results](#what-you-can-gain) · [Quality](#cost-vs-quality) · [Profiles](#execution-profiles) · [Install](#install-in-a-repository) · [Usage](#usage) · [Case study](docs/BENCHMARK-CASE-STUDY.md)
+**Quick navigation:** [Results](#what-you-can-gain) · [Quality](#cost-vs-quality) · [Profiles](#execution-profiles) · [Install](#install-in-a-repository) · [Update](#update-an-existing-installation) · [Usage](#usage) · [Case study](docs/BENCHMARK-CASE-STUDY.md)
 
 The goal is simple:
 
@@ -98,16 +98,99 @@ Fixed roles by default:
 
 ## Install in a repository
 
-From the target repository:
+Run these commands in **your application repository**, not in a separate clone of Flatplanet Orchestrator. The examples use Bash, Git, and standard Linux tools. Finish any active Codex task before replacing its skill files.
+
+### First installation
+
+This downloads the current `main` branch and copies only this skill. It refuses to overwrite an existing installation; use the update procedure below instead.
 
 ```bash
-mkdir -p .agents/skills
-git clone https://github.com/flatplanetpl/flatplanet-orchestrator.git /tmp/flatplanet-orchestrator
-cp -R /tmp/flatplanet-orchestrator/.agents/skills/flatplanet-orchestrator .agents/skills/
-rm -rf /tmp/flatplanet-orchestrator
+(
+  set -euo pipefail
+  cd "$(git rev-parse --show-toplevel)"
+  skill=".agents/skills/flatplanet-orchestrator"
+
+  if [ -e "$skill" ] || [ -L "$skill" ]; then
+    echo "Already installed. Use the update instructions below." >&2
+    exit 1
+  fi
+
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf -- "$tmpdir"' EXIT
+  git clone --depth 1 --branch main \
+    https://github.com/flatplanetpl/flatplanet-orchestrator.git \
+    "$tmpdir/source"
+  test -f "$tmpdir/source/$skill/SKILL.md"
+
+  mkdir -p .agents/skills
+  cp -R -- "$tmpdir/source/$skill" "$skill"
+  printf 'Installed from commit: '
+  git -C "$tmpdir/source" rev-parse HEAD
+)
 ```
 
-Then start a new Codex session from the repository root.
+### Update an existing installation
+
+For a skill installed by copying its directory, run this from the application repository whenever you want the current version from `main`.
+
+**Overwrite behavior:** matching files inside `.agents/skills/flatplanet-orchestrator/` are replaced in full, not merged. New upstream files are added; files that exist only locally are retained. A complete backup is made before copying the update. Neither `.codex/config.toml`, `AGENTS.md`, nor other skills are modified.
+
+```bash
+(
+  set -euo pipefail
+  cd "$(git rev-parse --show-toplevel)"
+  skill=".agents/skills/flatplanet-orchestrator"
+
+  if [ ! -f "$skill/SKILL.md" ]; then
+    echo "Skill not found. Use the first-installation instructions." >&2
+    exit 1
+  fi
+  if [ -L .agents ] || [ -L .agents/skills ] || [ -L "$skill" ] ||
+     [ -n "$(find "$skill" -type l -print -quit)" ]; then
+    echo "Symlinked installation: update its source directory instead." >&2
+    exit 1
+  fi
+
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf -- "$tmpdir"' EXIT
+  git clone --depth 1 --branch main \
+    https://github.com/flatplanetpl/flatplanet-orchestrator.git \
+    "$tmpdir/source"
+  test -f "$tmpdir/source/$skill/SKILL.md"
+
+  backup_root="${XDG_STATE_HOME:-$HOME/.local/state}/flatplanet-orchestrator/backups"
+  mkdir -p -- "$backup_root"
+  backup="$(mktemp -d "$backup_root/update.XXXXXXXX")"
+  cp -a -- "$skill" "$backup/flatplanet-orchestrator"
+  printf 'Backup: %s\n' "$backup/flatplanet-orchestrator"
+
+  cp -R -- "$tmpdir/source/$skill/." "$skill/"
+  printf 'Updated from commit: '
+  git -C "$tmpdir/source" rev-parse HEAD
+)
+```
+
+The command prints the backup location and upstream commit SHA. Backups are kept outside the skill-discovery directories, under `${XDG_STATE_HOME:-$HOME/.local/state}/flatplanet-orchestrator/backups/`.
+
+Local edits to upstream-managed files, including `SKILL.md`, must be reapplied or merged manually from the backup. Local-only files are not deleted automatically; review any obsolete helper or reference files when updating.
+
+A `git pull` in a separate Flatplanet Orchestrator clone updates that clone only, not the copy installed in your application repository. The procedure above refreshes the installed copy directly. It does not stage or commit changes in your application repository.
+
+### Verify the installation or update
+
+From the application repository root:
+
+```bash
+grep '^name:' .agents/skills/flatplanet-orchestrator/SKILL.md
+git status --short -- .agents/skills/flatplanet-orchestrator
+git diff -- .agents/skills/flatplanet-orchestrator
+```
+
+The name should be `flatplanet-orchestrator`. Review the changes and any newly added files before committing them to your application repository. For a clean verification run, start a new Codex session from that repository root:
+
+```bash
+codex
+```
 
 ## Usage
 
