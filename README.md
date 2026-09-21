@@ -32,31 +32,9 @@ The important shift is not merely "fewer tokens." It is **moving execution away 
 
 ### At a glance
 
-```text
-ROOT ASTRA RESPONSES
-Old    455 |██████████████████████████████████████████████████| 100%
-Cheap   21 |██                                                |   4.6%
-
-ROOT ASTRA TOKENS
-Old   59.47M |██████████████████████████████████████████████████| 100%
-Cheap  1.05M |█                                                 |   1.8%
-
-ALL ASTRA TOKENS
-Old   60.77M |██████████████████████████████████████████████████| 100%
-Cheap  1.66M |█                                                 |   2.7%
-
-ASTRA SHARE OF ALL TOKENS
-Old   40.4% |████████████████████                              |
-Cheap  1.4% |█                                                 |
-
-TOTAL TOKENS
-Old   150.35M |██████████████████████████████████████████████████| 100%
-Cheap 118.84M |███████████████████████████████████████           |  79%
-
-WORK SHIFT
-Old    | Astra ████████████████████ 40.4% | Workers ██████████████████████████████ 59.6% |
-Cheap  | Astra █ 1.4%                  | Workers █████████████████████████████████████████████████ 98.6% |
-```
+<p>
+  <img src="docs/assets/benchmark-at-a-glance.svg" width="100%" alt="Old vs Cheap orchestration: root Astra responses 455 vs 21; root Astra tokens 59.47M vs 1.05M; all Astra tokens 60.77M vs 1.66M; Astra share 40.4% vs 1.4%; total tokens 150.35M vs 118.84M. Worker share rises from 59.6% to 98.6%.">
+</p>
 
 The goal is not to eliminate worker compute. The goal is to make **expensive orchestration sparse** and let cheaper workers do the long-running execution.
 
