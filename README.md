@@ -25,7 +25,7 @@ In a real before/after run on the same non-trivial implementation task, changing
 | Astra share of all tokens | 40.4% | 1.4% | **-39.0 pp** |
 | Total tokens | 150.35M | 118.84M | **-21.0%** |
 | Worker tokens | 89.58M | 117.18M | **+30.8%** |
-| Visible primary allowance delta | +4 pp | 0 pp visible | see caveats |
+| Visible weekly allowance delta (Pro) | +4 pp | 0 pp visible | see caveats |
 
 The important shift is not merely "fewer tokens." It is **moving execution away from the expensive root model and into the worker model**, while keeping Astra for planning and review.
 
@@ -64,7 +64,7 @@ The optimized run took longer wall-clock time (151m42s vs 106m56s), but the Astr
 
 Quality was not ignored: the independent Astra reviewer found **2 high + 4 medium** issues; all were fixed, with broad backend/frontend verification afterward.
 
-> These numbers are one measured case study, not a guaranteed savings ratio. Codex allowance accounting is not publicly reducible to a simple token formula, and the secondary/weekly counter was unavailable in this run.
+> These numbers are one measured case study, not a guaranteed savings ratio. On this ChatGPT Pro account, the backend `primary` window represented the 7-day/weekly allowance. The secondary window was unavailable in these captures. Displayed allowance percentages may be rounded or delayed.
 
 See **[Benchmark case study](docs/BENCHMARK-CASE-STUDY.md)** for the complete methodology, raw numbers, quality findings, tests, and limitations.
 
