@@ -2,6 +2,8 @@
 
 Cost-efficient multi-agent orchestration skill for OpenAI Codex.
 
+**Quick navigation:** [Results](#what-you-can-gain) · [Quality](#cost-vs-quality) · [Profiles](#execution-profiles) · [Install](#install-in-a-repository) · [Usage](#usage) · [Case study](docs/BENCHMARK-CASE-STUDY.md)
+
 The goal is simple:
 
 - keep the expensive root model focused on planning, architecture and final integration,
