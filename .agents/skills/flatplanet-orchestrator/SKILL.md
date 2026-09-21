@@ -386,6 +386,8 @@ Each delegation must contain:
 - Constraints
 - Deliverable
 - Acceptance criteria
+- Semantic invariants: identify any task-specific value, identity, state,
+  normalization, aggregation, or error-semantics invariants that must be preserved
 - Communication policy
 
 Prefer one sufficiently autonomous worker over many tiny sequential workers.
@@ -823,6 +825,147 @@ Do not count a test as strong evidence when it only asserts the behavior produce
 If a test passes while the acceptance criterion can still be violated, add a stronger test.
 
 
+# Semantic correctness policy
+
+For non-trivial implementations, the worker, tester, and reviewer must verify
+applicable semantic invariants, not only type correctness and passing tests.
+
+Apply only the checks that are relevant to the task.
+Do not manufacture concerns for domains that are not present.
+
+## Representation and transformation semantics
+
+When data changes representation, verify that its meaning is preserved.
+
+Examples include:
+
+- source values -> operational values
+- external DTO -> domain model
+- gross -> net
+- percentage -> fraction
+- UTC -> local time
+- one unit of measure -> another
+- source status -> internal state
+- encoded value -> normalized value
+
+Do not assume values are interchangeable merely because their types or numeric
+values are compatible.
+
+Verify together when applicable:
+
+- value
+- unit
+- currency
+- scale
+- precision
+- time zone
+- source/target semantic meaning
+
+
+## Derived identifiers and canonicalization
+
+When identifiers, deduplication keys, cache keys, mapping keys, uniqueness keys,
+or fingerprints are derived from multiple values, verify:
+
+- collision resistance
+- unambiguous encoding
+- separator escaping or structured encoding
+- null versus empty semantics
+- ordering
+- case normalization
+- whitespace normalization
+- Unicode normalization when relevant
+- consistency across producers and consumers
+
+Do not concatenate untrusted components with a delimiter and assume the result
+is collision-safe.
+
+
+## Runtime / migration semantic parity
+
+When migrations, backfills, importers, repair scripts, or bootstrap logic
+reproduce behavior that also exists at runtime, verify equivalent semantics for:
+
+- normalization
+- validation
+- parsing
+- canonicalization
+- defaults
+- nullable values
+- special values
+- enum/status conversion
+- precision and rounding
+
+Migration and runtime implementations do not need identical code, but they must
+produce semantically equivalent results for the same logical input.
+
+
+## Error taxonomy preservation
+
+Keep materially different failure classes distinguishable.
+
+Do not collapse different:
+
+- validation failures
+- domain/business conflicts
+- optimistic-concurrency conflicts
+- authorization failures
+- not-found conditions
+- external-service failures
+- transport/network failures
+
+into one generic handling path merely because they share:
+
+- the same HTTP status
+- the same exception base type
+- the same result envelope
+
+User recovery behavior must correspond to the actual failure semantics.
+
+
+## Aggregation and comparison compatibility
+
+Before summing, averaging, comparing, grouping, sorting, or otherwise combining
+values, verify that they are semantically compatible.
+
+Check applicable dimensions such as:
+
+- currency
+- unit of measure
+- gross versus net
+- rate versus absolute quantity
+- source versus operational quantity
+- time period
+- tenant/scope
+- lifecycle state
+
+If values are incompatible, convert them explicitly, separate them, or reject
+the operation.
+
+Never produce a numerically valid but semantically meaningless aggregate.
+
+
+## Stateful and concurrent behavior
+
+When correctness depends on ordering, concurrency, retries, delayed responses,
+or asynchronous state transitions, test the relevant interleavings explicitly.
+
+Prefer deterministic barriers, controlled callbacks, interceptors, fake clocks,
+or equivalent synchronization over timing-dependent tests.
+
+Consider transitions such as:
+
+- edit -> save -> success
+- edit -> save -> failure -> edit -> retry
+- request A -> request B -> response B -> late response A
+- operation -> retry
+- operation -> concurrent duplicate
+- partial progress -> failure -> rollback
+
+A test that happens to use concurrency is not sufficient evidence that the
+dangerous interleaving was exercised.
+
+
 # Default coding workflow
 
 ## Phase 1 — understand
@@ -896,11 +1039,12 @@ Only after implementation and required testing:
 3. if required or useful, spawn `gpt-6-astra` reviewer with the selected explicit reasoning effort
 4. follow the Blind / Adversarial Reviewer Policy: provide source requirements, acceptance criteria, and repository/diff access, but do not prime the reviewer with the worker's implementation narrative or claimed correctness
 5. require the reviewer to derive expected behavior independently, inspect tests independently, and actively construct failure scenarios
-6. only after first-principles analysis may the reviewer use raw test/build results as supporting evidence
-7. use `wait_agent(timeout_ms = 600000)`
-8. classify findings as Critical / High / Medium / Low
-9. require a concrete failure scenario for each material finding when practical
-10. process completed findings once
+6. before completing the review, apply the Semantic correctness policy to every relevant transformation, derived identifier, migration/runtime pair, error boundary, aggregation, and stateful/concurrent workflow touched by the change
+7. only after first-principles analysis may the reviewer use raw test/build results as supporting evidence
+8. use `wait_agent(timeout_ms = 600000)`
+9. classify findings as Critical / High / Medium / Low
+10. require a concrete failure scenario for each material finding when practical
+11. process completed findings once
 
 
 ## Phase 6 — corrections
