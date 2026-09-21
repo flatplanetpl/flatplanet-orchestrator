@@ -155,6 +155,30 @@ Explicit worker override:
 $flatplanet-orchestrator worker=terra effort=high implement the ticket
 ```
 
+### Blind / adversarial review
+
+Independent reviewers are intentionally **not primed by the worker's success narrative**.
+
+The first review pass follows:
+
+```text
+spec / acceptance criteria
+          ↓
+final implementation
+          ↓
+test code
+          ↓
+adversarial review
+          ↓
+test/build evidence
+```
+
+The reviewer is asked to **falsify correctness**: find missing behavior, semantic mistakes, stale-state/concurrency failures, and tests that may simply encode the implementation's bug.
+
+Worker model/profile and worker claims are withheld from the first-pass reviewer when possible to reduce anchoring bias.
+
+After fixes, re-review verifies previous findings **and** performs a fresh regression scan.
+
 ### Dynamic reviewer effort
 
 Reviewer cost also scales with risk:
