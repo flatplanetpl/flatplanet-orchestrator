@@ -45,25 +45,25 @@ Then start a new Codex session from the repository root.
 Default profile (`balanced`):
 
 ```text
-$flatplanet-orchestrator implementuj ticket GR-UX-01A
+$flatplanet-orchestrator implement ticket GR-UX-01A
 ```
 
 Cheap:
 
 ```text
-$flatplanet-orchestrator profile=cheap napraw walidację formularza
+$flatplanet-orchestrator profile=cheap fix the form validation
 ```
 
 Strong:
 
 ```text
-$flatplanet-orchestrator profile=strong przeprojektuj synchronizację danych
+$flatplanet-orchestrator profile=strong redesign the data synchronization
 ```
 
 Explicit worker override:
 
 ```text
-$flatplanet-orchestrator worker=terra effort=high implementuj ticket
+$flatplanet-orchestrator worker=terra effort=high implement the ticket
 ```
 
 ## Why this exists
