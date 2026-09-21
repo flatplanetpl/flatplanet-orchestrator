@@ -52,13 +52,13 @@ Optional effort override:
 
 Examples:
 
-`$flatplanet-orchestrator profile=cheap napraw walidację formularza`
+`$flatplanet-orchestrator profile=cheap fix the form validation`
 
-`$flatplanet-orchestrator profile=balanced implementuj GR-UX-01A`
+`$flatplanet-orchestrator profile=balanced implement GR-UX-01A`
 
-`$flatplanet-orchestrator profile=strong przeprojektuj synchronizację danych`
+`$flatplanet-orchestrator profile=strong redesign the data synchronization`
 
-`$flatplanet-orchestrator worker=terra effort=high implementuj ticket`
+`$flatplanet-orchestrator worker=terra effort=high implement the ticket`
 
 Explicit `worker=` and `effort=` values override the selected profile.
 
