@@ -52,6 +52,7 @@ The root is explicitly told not to poll, inspect partial worker-owned changes, o
 
 ## Benchmark environment
 
+- ChatGPT plan: Pro
 - Codex CLI: `0.155.1`
 - Same repository and feature area
 - Root model: GPT-6 Astra / medium
@@ -405,6 +406,8 @@ That result supports the profile model used by Flatplanet Orchestrator:
 For work involving concurrency, money, inventory integrity, migrations, authorization/security, or cross-tenant isolation, using at least `balanced` is prudent unless the user explicitly chooses `cheap`.
 
 ## Allowance caveats
+
+The allowance observations in this case study are specific to the **ChatGPT Pro plan** used for the benchmark.
 
 The script reported:
 
