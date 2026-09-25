@@ -2,7 +2,7 @@
 
 Cost-efficient multi-agent orchestration skill for OpenAI Codex.
 
-**Quick navigation:** [Results](#what-you-can-gain) · [Quality](#cost-vs-quality) · [Profiles](#execution-profiles) · [Install](#install-in-a-repository) · [Update](#update-an-existing-installation) · [Usage](#usage) · [Case study](docs/BENCHMARK-CASE-STUDY.md)
+**Quick navigation:** [Results](#what-you-can-gain) · [Quality](#cost-vs-quality) · [Profiles](#execution-profiles) · [Install](#install-in-a-repository) · [Update](#update-an-existing-installation) · [Usage](#usage) · [Benchmark harness](benchmark/README.md) · [Case study](docs/BENCHMARK-CASE-STUDY.md)
 
 The goal is simple:
 
@@ -245,6 +245,14 @@ Astra root
 
 ## Benchmarking
 
+The reproducible benchmark procedure now lives under **[benchmark/](benchmark/README.md)**.
+
+Use:
+
+- [benchmark/HARNESS.md](benchmark/HARNESS.md) for the full run and review procedure,
+- [benchmark/RUN-TEMPLATE.md](benchmark/RUN-TEMPLATE.md) for per-run evidence,
+- [docs/BENCHMARK-CASE-STUDY.md](docs/BENCHMARK-CASE-STUDY.md) for the historical GR-UX-01 case study.
+
 When comparing orchestration strategies, track at least:
 
 - root model responses,
@@ -253,6 +261,8 @@ When comparing orchestration strategies, track at least:
 - worker total tokens,
 - root share of total tokens,
 - task wall time,
-- Codex primary/secondary allowance delta when available.
+- Codex primary/secondary allowance delta when available,
+- exact application/skill SHAs,
+- final-snapshot quality findings and unverified acceptance criteria.
 
-A healthy run should move most execution tokens away from the expensive root and into the selected worker model.
+A healthy run should move most execution tokens away from the expensive root and into the selected worker model without weakening the evidence required for final implementation quality.
