@@ -1,6 +1,6 @@
 ---
 name: flatplanet-orchestrator
-description: Cost-efficient multi-agent orchestration for Codex. GPT-6 Astra is used as a low-activity planner/integrator, while execution workers are selected dynamically with cheap/balanced/strong/max profiles. Optimized to minimize root-agent wakeups, polling, duplicated work, and Astra context usage.
+description: Cost-efficient multi-agent orchestration for Codex. GPT-6 Astra is used as a low-activity planner/integrator, while execution workers are selected dynamically with cheap/luna6/balanced/strong/max profiles. Optimized to minimize root-agent wakeups, polling, duplicated work, and Astra context usage.
 ---
 
 # Flatplanet Orchestrator — Parametrized Cost/Quality Profiles
@@ -33,6 +33,7 @@ The user may select the implementation profile directly in the request.
 Supported syntax:
 
 - `profile=cheap`
+- `profile=luna6`
 - `profile=balanced`
 - `profile=strong`
 - `profile=max`
@@ -40,6 +41,7 @@ Supported syntax:
 Explicit model overrides are also supported:
 
 - `worker=luna`
+- `worker=luna6`
 - `worker=terra`
 - `worker=sol`
 - `worker=astra`
@@ -53,6 +55,8 @@ Optional effort override:
 Examples:
 
 `$flatplanet-orchestrator profile=cheap fix the form validation`
+
+`$flatplanet-orchestrator profile=luna6 implement a cost-sensitive production task`
 
 `$flatplanet-orchestrator profile=balanced implement GR-UX-01A`
 
@@ -83,6 +87,27 @@ Use for:
 - test fixes
 - repetitive repository work
 - low-risk implementation
+
+
+## Profile: luna6
+
+Use:
+
+- worker: `gpt-6-luna`
+- worker reasoning: `max`
+
+This is an explicit, non-default GPT-6 Luna profile.
+
+Use for:
+
+- benchmarking GPT-6 Luna against the existing profiles
+- cost-sensitive implementation where the user explicitly wants GPT-6 Luna
+- high-volume or repetitive work that still benefits from the GPT-6 generation
+- tasks where Luna-level execution cost is preferred while retaining independent verification
+
+Do not silently substitute `gpt-5.6-luna` for this profile.
+
+The same risk-aware tester and reviewer gates apply. Selecting `luna6` does not weaken verification requirements.
 
 
 ## Profile: balanced
@@ -1094,7 +1119,10 @@ Escalate only when evidence indicates a reasoning/capability limitation.
 Suggested escalation path:
 
 cheap:
-Luna max -> Terra high
+GPT-5.6 Luna max -> Terra high
+
+luna6:
+GPT-6 Luna max -> GPT-6 Sol high
 
 balanced:
 Terra high -> Sol high
