@@ -84,6 +84,7 @@ This is why `cheap` is intentionally **not** the default production profile. Use
 | Profile | Worker | Reasoning | Typical use |
 |---|---|---|---|
 | `cheap` | GPT-5.6 Luna | max | small, bounded, routine changes |
+| `luna6` | GPT-6 Luna | max | explicit cost-sensitive GPT-6 / benchmark profile |
 | `balanced` | GPT-5.6 Terra | high | default production development |
 | `strong` | GPT-5.6 Sol | high | difficult debugging/refactors |
 | `max` | GPT-6 Astra | medium | exceptional, high-risk tasks |
@@ -158,6 +159,14 @@ Cheap:
 ```text
 $flatplanet-orchestrator profile=cheap fix the form validation
 ```
+
+GPT-6 Luna / max:
+
+```text
+$flatplanet-orchestrator profile=luna6 implement the ticket
+```
+
+`luna6` is explicit and non-default. It uses `gpt-6-luna` with `max` reasoning while keeping the same independent tester/reviewer rules as the other profiles.
 
 Strong:
 
