@@ -1,6 +1,6 @@
 # Benchmark Case Study: Reducing Astra Orchestration Usage
 
-**Quick navigation:** [Setup](#benchmark-environment) · [Results](#old-orchestration-vs-cheap-profile) · [Charts](#visual-comparison) · [Quality](#independent-quality-comparison) · [Verification](#verification-performed) · [Caveats](#allowance-caveats) · [README](../README.md)
+**Quick navigation:** [Setup](#benchmark-environment) · [Results](#old-orchestration-vs-cheap-profile) · [Charts](#visual-comparison) · [Quality](#independent-quality-comparison) · [Verification](#verification-performed) · [Caveats](#allowance-caveats) · [Harness](../benchmark/README.md) · [README](../README.md)
 
 ## Summary
 
