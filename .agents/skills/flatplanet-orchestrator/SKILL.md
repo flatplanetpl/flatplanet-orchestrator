@@ -1,6 +1,6 @@
 ---
 name: flatplanet-orchestrator
-description: Cost-efficient multi-agent orchestration for Codex. GPT-6 Astra is used as a low-activity planner/integrator, while execution workers are selected dynamically with cheap/luna6/balanced/strong/max profiles. Optimized to minimize root-agent wakeups, polling, duplicated work, and Astra context usage.
+description: Cost-conscious multi-agent orchestration for Codex. GPT-6 Astra is used as a low-activity planner/integrator, while execution workers are selected dynamically with cheap/luna6/balanced/strong/max profiles. Optimized to minimize root-agent wakeups, polling, duplicated work, and Astra context usage.
 ---
 
 # Flatplanet Orchestrator — Parametrized Cost/Quality Profiles
@@ -66,9 +66,11 @@ Examples:
 
 Explicit `worker=` and `effort=` values override the selected profile.
 
-If the user provides no profile and no explicit worker model, use:
+If the user provides no profile and no explicit worker model, start from
+`balanced` and select the initial profile using the Risk-aware profile floor.
 
-`profile=balanced`
+`balanced` is the ordinary-production baseline, not an unconditional selection.
+An effort-only override changes reasoning effort, not this model-selection rule.
 
 
 ## Profile: cheap
@@ -117,7 +119,9 @@ Use:
 - worker: `gpt-5.6-terra`
 - worker reasoning: `high`
 
-This is the DEFAULT profile.
+This is the baseline for ordinary production work. When neither a profile nor
+a worker model is explicitly selected, the Risk-aware profile floor governs
+the initial selection.
 
 Use for:
 
@@ -195,9 +199,15 @@ honor it.
 
 Do not silently upgrade the worker model.
 
-If no profile is specified:
+If neither a profile nor an explicit worker model is specified:
 
-use `balanced`.
+start from `balanced` and apply the Risk-aware profile floor below.
+
+An explicit `worker=` overrides the profile's worker model; an explicit
+`effort=` overrides its reasoning effort. Do not replace an explicit worker
+selection through automatic profile selection. `luna6` remains explicit-only.
+Initial risk-aware selection is separate from later escalation, which must
+remain justified and explicit.
 
 The root may recommend a different profile only when there is strong evidence that the selected profile is unsuitable.
 
@@ -224,7 +234,8 @@ Risk signals include:
 - distributed state, retries, rollback, or partial-failure handling
 - transformations where source units/values differ from operational units/values
 
-When the user did NOT explicitly select a profile:
+When the user selected neither a profile nor an explicit worker model
+(an effort-only override does not select a model):
 
 - low-risk, well-bounded work may use `cheap`
 - ordinary production work uses at least `balanced`
@@ -234,7 +245,7 @@ When the user did NOT explicitly select a profile:
 
 Do not silently downgrade below the risk-aware floor.
 
-If the user explicitly selects a cheaper profile than the risk-aware recommendation:
+If the user explicitly selects a cheaper profile or worker model than the risk-aware recommendation:
 
 - honor the explicit selection
 - do NOT silently upgrade
