@@ -1,561 +1,148 @@
-# Benchmark Case Study: Reducing Astra Orchestration Usage
+# GR-UX-01 benchmark comparison
 
-**Quick navigation:** [Setup](#benchmark-environment) · [Results](#old-orchestration-vs-cheap-profile) · [Charts](#visual-comparison) · [Quality](#independent-quality-comparison) · [Verification](#verification-performed) · [Caveats](#allowance-caveats) · [Harness](../benchmark/README.md) · [README](../README.md)
+**Evidence update:** 2026-10-05  
+**Order:** Old orchestration → Cheap profile → Balanced profile → GPT-6 Luna.
 
-## Summary
+**Quick navigation:** [Evidence](#evidence-scope) · [Usage](#usage-comparison) · [Bars](#visual-comparison) · [Quality](#final-snapshot-quality) · [Luna 6](#gpt-6-luna-process-results) · [Limitations](#interpretation-limits) · [Historical study](BENCHMARK-CASE-STUDY-OLD-CHEAP.md) · [Harness](../benchmark/README.md) · [README](../README.md)
 
-This case study compares two executions of the same non-trivial Codex implementation task:
+## Evidence scope
 
-```text
-implement the first executable file from:
-docs/plans/goods-receipts/GR-UX-01-GOODS-RECEIPTS-REDESIGN.md
-```
+This page brings together the maintainer-supplied GR-UX-01A usage reports and review results. It adds the **GPT-6 Luna / max** run of 2026-09-25–26. No application code, build, test, or comparative review was rerun while preparing this documentation.
 
-The target work was the GR-UX-01A goods-receipt/KSeF draft flow in a production application repository. It included backend logic, persistence/migrations, frontend editing/autosave behavior, tests, and review.
+There are two different evidence layers:
 
-Both runs used Codex CLI `0.155.1`.
+1. **Session usage:** four supplied implementation-session exports, with different orchestration histories and verification workloads.
+2. **Final-snapshot quality:** a later independent review of Old, Cheap and Balanced. Luna 6 currently has only its own implementation/closure report, not the same comparative review.
 
-The purpose was to test whether an orchestrator could preserve high-quality planning/review while dramatically reducing repeated GPT-6 Astra root invocations during long-running worker execution.
+The original two-run article is preserved verbatim as the [historical Old/Cheap case study](BENCHMARK-CASE-STUDY-OLD-CHEAP.md). Its earlier quality counts are historical and were superseded by the subsequent three-snapshot review below. Review rounds are not additive.
 
-## The problem
+The [Luna 6 run entry](../benchmark/runs/2026-09-25-GR-UX-01-luna6.md) contains the exact transcribed usage counts, source-attachment hash, reproducibility fields, process findings, acceptance matrix and evidence limitations.
 
-The original orchestration pattern repeatedly woke the Astra root while workers were still running.
+## Usage comparison
 
-Typical behavior looked like:
+All counts below come from the supplied exports. `M` means one million tokens. Model identifiers are those recorded for these runs, not a statement about current product availability or pricing.
 
-```text
-spawn worker
-wait
-wake Astra
-worker still running
-inspect/search/diff
-wait
-wake Astra
-worker still running
-...
-```
+| Metric | Old orchestration | Cheap profile | Balanced profile | GPT-6 Luna |
+|---|---:|---:|---:|---:|
+| Session prefix | `01a0c184` | `01a0c206` | `01a0c2d1` | `01a0d9c0` |
+| Codex CLI in export | 0.155.1 | 0.155.1 | 0.155.1 | 0.157.0 |
+| Threads counted | 7 | 3 | 4 | 4 |
+| Root Astra responses | 455 | 21 | 37 | 105 |
+| Root Astra cached input | 58,756,480 | 951,424 | 2,042,752 | 7,254,400 |
+| Root Astra total tokens | 59,466,160 | 1,047,467 | 2,120,143 | 7,398,270 |
+| All Astra tokens (root + reviewer) | 60,768,574 | 1,657,251 | 3,556,097 | 11,842,658 |
+| GPT-5.6 Luna tokens, all roles | 89,580,751 | 117,179,887 | 41,027,409 | 44,671,233 |
+| GPT-5.6 Terra tokens | — | — | 24,360,298 | — |
+| GPT-6 Luna tokens | — | — | — | 130,353,100 |
+| All responses | 1,124 | 806 | 530 | 1,320 |
+| **All-model total tokens** | **150,349,325** | **118,837,138** | **68,943,804** | **186,866,991** |
+| Astra share of total tokens | 40.42% | 1.39% | 5.16% | 6.34% |
+| Input cache-hit rate | 98.2% | 98.2% | 97.0% | 97.3% |
+| Reported elapsed session span | 106m56s | 151m42s | 172m00s | 1158m06s* |
 
-Each wake-up could reprocess a very large cached root context. Even with a high prompt-cache hit rate, repeated Astra turns accumulated substantial usage.
+`—` means the model has no row in that supplied export. Total tokens include cached input; they do not measure unique source size. Reported reasoning counts are not added again to the exported totals.
 
-Flatplanet Orchestrator changes the control flow to:
+*Luna 6's span is 19h18m06s and includes an unquantified interruption after a 401 error and subsequent continuation. Active coding time has not been established. Do not rank model speed using this elapsed span, or sum thread durations as wall time.
 
-```text
-Astra root
-  -> understand / plan
-  -> spawn worker
-  -> LONG wait_agent(timeout_ms=...)
-  -> process completed result
-  -> optional independent review
-  -> batch corrections
-  -> final verification
-```
+The original usage exports for Old, Cheap and Balanced were supplied in the benchmark discussion; the Old/Cheap values are also preserved in the historical study. Balanced's export recorded 2,120,143 root Astra + 1,435,954 reviewer Astra + 24,360,298 Terra + 41,027,409 Luna tokens. The Luna 6 export is reproduced in the linked run entry. Raw rollout logs were not audited for this publication.
 
-The root is explicitly told not to poll, inspect partial worker-owned changes, or invent work merely to stay active.
+### Arithmetic changes, not cost estimates
 
-## Benchmark environment
+| Luna 6 compared with | Root Astra token change | All-model token change |
+|---|---:|---:|
+| Old orchestration | -87.6% | +24.3% |
+| Cheap profile | +606.3% | +57.2% |
+| Balanced profile | +249.0% | +171.0% (2.71× total) |
 
-- ChatGPT plan: Pro
-- Codex CLI: `0.155.1`
-- Same repository and feature area
-- Root model: GPT-6 Astra / medium
-- Old orchestration worker strategy: Luna subagents with an actively polling root
-- Cheap profile worker strategy: one long-running GPT-5.6 Luna / max worker plus GPT-6 Astra / low reviewer
-- Token accounting source: `scripts/token_usage.py --latest`
-- Prompt cache hit rate:
-  - before: 98.2%
-  - after: 98.2%
+These ratios do not isolate worker capability or monetary cost. In particular, the Cheap run has no separate tester thread, whereas the Luna 6 run includes 44,671,233 GPT-5.6 Luna tester tokens. Its GPT-6 Luna worker used 130,353,100 tokens versus Cheap's 117,179,887 worker tokens: +11.2%, not the whole-workflow +57.2%.
 
-The runs were not laboratory-identical. The optimized run took longer and used a different orchestration topology, so the result should be treated as an engineering case study rather than a controlled scientific benchmark.
+### Plan-level allowance
 
-## Raw results
+All runs were reported on **ChatGPT Pro**. The maintainer identified the `primary` field as the weekly window for this account. This mapping is recorded as account-specific context, not a universal meaning of `primary`.
 
-### Old orchestration
+| Observation | Old orchestration | Cheap profile | Balanced profile | GPT-6 Luna |
+|---|---|---|---|---|
+| Primary percentage in export | 19% → 23% | 23% → 23% | 24% → 25% | 30% → 46% |
+| Interpretation | +4 pp observed | 0 pp visible, not proof of zero usage | +1 pp observed | **Account delta only; NOT ISOLATED** |
+| Secondary field | Unavailable | Unavailable | Unavailable | Unavailable |
 
-```text
-wall time: 106m56s
-threads: 7
-
-root Astra / medium:
-  responses:      455
-  uncached input: 648,750
-  cached input:   58,756,480
-  output:         60,930
-  total:          59,466,160
-
-all Astra:
-  responses:      474
-  total:          60,768,574
-
-all Luna:
-  responses:      650
-  total:          89,580,751
-
-all models:
-  responses:      1,124
-  total:          150,349,325
-
-weekly allowance (backend `primary` on this Pro account):
-  19.0% -> 23.0%  (+4 percentage points)
-
-secondary window:
-  unavailable
-```
-
-### Cheap profile (Luna Max)
-
-```text
-wall time: 151m42s
-threads: 3
-
-root Astra / medium:
-  responses:      21
-  uncached input: 93,727
-  cached input:   951,424
-  output:         2,316
-  total:          1,047,467
-
-Luna worker / max:
-  responses:      774
-  total:          117,179,887
-
-Astra reviewer / low:
-  responses:      11
-  total:          609,784
-
-all Astra:
-  responses:      32
-  total:          1,657,251
-
-all models:
-  responses:      806
-  total:          118,837,138
-
-weekly allowance (backend `primary` on this Pro account):
-  23.0% -> 23.0%  (no visible increase)
-
-secondary window:
-  unavailable
-```
-
-## Old orchestration vs Cheap profile
-
-| Metric | Old orchestration | Cheap profile | Change |
-|---|---:|---:|---:|
-| Wall time | 106m56s | 151m42s | +41.9% |
-| Root Astra responses | 455 | 21 | **-95.4%** |
-| Root Astra cached input | 58.76M | 0.95M | **-98.4%** |
-| Root Astra total | 59.47M | 1.05M | **-98.2%** |
-| All Astra total | 60.77M | 1.66M | **-97.3%** |
-| Luna total | 89.58M | 117.18M | +30.8% |
-| All-model total | 150.35M | 118.84M | **-21.0%** |
-| Astra share of total tokens | 40.4% | 1.4% | **-39.0 pp** |
-| Visible weekly allowance delta (Pro) | +4 pp | 0 pp visible | displayed percentage |
-
-The key result is the collapse in expensive root activity. The Cheap profile intentionally allowed the cheaper worker to do more work, yet overall tokens still fell by about 21%.
-
+An unrelated `daycomplet` session on the same account was separately reported with 38% → 46%. The supplied records do not establish a complete chronology. Do not charge Luna 6 with all 16 points, subtract 8 points mechanically, or present an exact percentage saving. Displayed values can also be rounded or delayed. The unrelated session's token totals are excluded completely.
 
 ## Visual comparison
 
-### Expensive root activity
+Root Astra tokens relative to Old = 100%. Bars are rounded to 30 cells; exact ratios are shown alongside. These are **token bars, not quality scores**.
 
 ```text
-Root Astra responses
-Old    455  ██████████████████████████████████████████████████  100.0%
-Cheap   21  ██                                                    4.6%
-             └──────────────────────────────────────────────────┘
-             95.4% reduction
+ROOT ASTRA TOKENS — RELATIVE TO OLD
+Old       59.47M |##############################| 100.0%
+Cheap      1.05M |#.............................|   1.8%
+Balanced   2.12M |#.............................|   3.6%
+Luna 6     7.40M |####..........................|  12.4%
 ```
 
-```text
-Root Astra total tokens
-Old    59.47M  ██████████████████████████████████████████████████  100.0%
-Cheap   1.05M  █                                                     1.8%
-                └──────────────────────────────────────────────────┘
-                98.2% reduction
-```
-
-```text
-Root Astra cached input
-Old    58.76M  ██████████████████████████████████████████████████  100.0%
-Cheap   0.95M  █                                                     1.6%
-                └──────────────────────────────────────────────────┘
-                98.4% reduction
-```
-
-### Where the tokens went
-
-```text
-OLD ORCHESTRATION
-
-Astra   40.4%  ████████████████████
-Workers 59.6%  ██████████████████████████████
-
-
-CHEAP PROFILE
-
-Astra    1.4%  █
-Workers 98.6%  █████████████████████████████████████████████████
-```
+Low root activity does not guarantee low whole-workflow usage: Luna 6 records the largest total token count in this set, despite using far fewer root Astra tokens than Old. The varying verification workloads and model mixes must remain visible.
 
-### Total compute
+## Final-snapshot quality
 
-```text
-All-model tokens
-Old   150.35M  ██████████████████████████████████████████████████  100%
-Cheap 118.84M  ███████████████████████████████████████             79%
-
-Despite the worker doing MORE work:
-Luna before   89.58M  ██████████████████████████████████████
-Luna after   117.18M  ██████████████████████████████████████████████
-```
+The later three-branch review supplied by the maintainer evaluated these exact commits using separate GPT-6 Astra / medium reviewer contexts, neutral snapshot labels, baseline builds/tests and equivalent adversarial probes. It excluded unsupported hypotheses from confirmed counts. The following is a transcription of that review, not a new review or a model-quality score.
 
-This is the core optimization:
+| Field | Old orchestration | Cheap profile | Balanced profile | GPT-6 Luna |
+|---|---|---|---|---|
+| Branch | `old-skill-GR-UX-01` | `new-skill-GR-UX-01` | `ballanced-skill-GR-UX-01` | `gpt6-luna-skill-GR-UX-01` |
+| Reviewed final commit | `97366ca586f86f354e08ab5ffc7852e0c83359b6` | `58386ae2a9d6cfd0ce0e773d5fa7e026e5dcc5fb` | `3df2af045dc0dc30fbabc880e78ebc3b40d3faf6` | **Not supplied; final work was uncommitted** |
+| Critical | 0 | 0 | 0 | NOT EVALUATED |
+| High | 1 | 6 | 3 | NOT EVALUATED |
+| Medium | 4 | 5 | 3 | NOT EVALUATED |
+| Low | 2 | 2 | 2 | NOT EVALUATED |
+| Comparative merge assessment | Not ready | Not ready | Not ready | PENDING; own acceptance is PARTIAL |
 
-```text
-OLD ORCHESTRATION
-┌─────────────────────────────────────────────────────────────────┐
-│ ASTRA ROOT                                                      │
-│ plan -> wait -> wake -> inspect -> wait -> wake -> diff -> ... │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │
-                       frequent expensive turns
-                                │
-                                ▼
-                         Luna subagents
-
-
-CHEAP PROFILE
-┌────────────────────┐
-│ ASTRA ROOT         │
-│ plan + delegate    │
-└─────────┬──────────┘
-          │
-          │ one long wait
-          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ WORKER                                                          │
-│ explore -> implement -> test -> fix -> verify                  │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ completed result
-                                ▼
-                         ┌───────────────┐
-                         │ ASTRA REVIEW  │
-                         │ selective     │
-                         └───────────────┘
-```
-
-### Root wake-up frequency
-
-```text
-Old:   4.26 root responses/min  ██████████████████████████████████████████████████
-Cheap: 0.15 root responses/min  ██
+`ballanced` is the actual reported branch spelling. These findings were present in the frozen snapshots, not defects already corrected during their implementation runs.
 
-Approximate reduction: 96.5%
-```
+That review selected **Old orchestration as the strongest starting point**, with material blockers in all three. Old preserved operational pricing/currency and pending edits better, but rejected signed source lines in its frontend and retained other defects. Balanced improved several editor, recovery and mapping behaviors relative to Cheap, yet retained operational unit-price/currency defects and navigation loss. Passing baseline tests did not eliminate those findings.
 
-## Root wake-up behavior
+The review also found that 22 of 32 source/test/migration files changed by Cheap were byte-identical in Balanced, including generated files and main mutation tests. Git ancestry alone did not establish how that content was introduced. This restricts causal claims about independent implementations and worker-model capability.
 
-The original root produced approximately:
+**Luna 6 is deliberately not ranked.** Its own reviewer closed known findings, but an equivalent independent comparison of its final code has not been supplied. The earlier Old/Cheap finding counts in the archived study remain historical evidence, not competing current totals.
 
-```text
-455 responses / 106m56s
-≈ 4.26 root responses per minute
-```
+## GPT-6 Luna process results
 
-The Cheap profile root produced:
+The supplied implementation report separates **7 High and 6 Medium failure modes**, all reported closed after corrections by the same Luna 6 worker. No Critical defect was established; a complete Low count was not supplied. Four review passes included new failures found during re-review, followed by a final 4/4 reproduction pass.
 
-```text
-21 responses / 141m49s root-thread duration
-≈ 0.15 root responses per minute
-```
+| Evidence | Reported result | Boundary |
+|---|---|---|
+| Final components | 93/93 PASS | Worker and independent tester; no full application browser acceptance |
+| Workspace component subset | 31/31 PASS | Included in the component coverage, not an extra disjoint total |
+| Final independent reproductions | 4/4 PASS | Closure of tested findings, not proof of no remaining defects |
+| Root synthetic DB tests | 49/49 PASS | 25 rules + 8 forward + 10 mutations + 6 consumers; performed by root |
+| Fresh migration / bootstrap | PASS | Synthetic disposable database only |
+| Typecheck / lint / npm test / frontend build | Reported PASS after final correction | Not rerun for this documentation |
+| Earlier broad backend suite | 787 passed, 342 skipped, 1 failure | Not rerun as a whole; not a final global PASS |
+| Independent tester DB execution | Blocked | Later root checks do not replace its provenance |
+| Full acceptance | **PARTIAL** | Browser/mobile/keyboard, cross-tab, <=60-second measurement, exact-SHA CI and owner approval missing |
 
-That is roughly a 96.5% reduction in root response frequency.
+The broad-suite failure was `assistant_probe_limit_wait_timeout` in an assistant-coordinator test; its cause was not established. It must remain visible instead of being reclassified as an environment-only issue.
 
-The Cheap profile trace showed the desired pattern:
+The implementation report initially could not verify effective child identity through its tools. The separately supplied corrected usage export records the requested model/effort topology. This is additional log-derived evidence, not retroactive independent certification of runtime identity.
 
-```text
-Started worker
-Waiting for agents
-...long-running worker activity...
-worker completes
-root resumes
-```
+## Interpretation limits
 
-instead of repeated short `wait_agent` wake-ups.
+- **Different workflow, not a controlled model-only experiment.** Skills, CLI versions, tester presence, reviewer effort and correction history changed. Older runs used CLI 0.155.1; Luna 6 used 0.157.0 and the pinned orchestrator commit documented in its run entry.
+- **No active-time ranking.** Luna 6's 401 interruption and idle span were not measured separately.
+- **No isolated Luna 6 allowance charge.** Other account usage was documented; no token-to-weekly conversion is inferred.
+- **No four-way final-code verdict yet.** Luna 6's final snapshot identifier and equal-scope comparative review remain missing.
+- **No test-count quality score.** Suites cover different scopes; baseline passing tests coexisted with independently reproduced defects in the three earlier snapshots.
+- **No same-quality-at-lower-cost claim.** Accepted-solution cost would include implementation, review, correction, regression and final acceptance at the same evidence threshold.
 
-## Independent quality comparison
+The defensible observation is narrower: orchestration changes reduced recorded root Astra activity relative to Old, while whole-workflow token totals and remaining implementation quality varied. The [Luna 6 entry](../benchmark/runs/2026-09-25-GR-UX-01-luna6.md) adds another measured workflow, not a new quality winner.
 
-A separate branch-to-branch review was performed after both implementations were complete.
+## Source map and preserved history
 
-The reviewer evaluated each branch independently against the same ticket/specification before comparing them directly. The branch labels used during review were neutralized to reduce naming bias.
+| Evidence | Scope |
+|---|---|
+| [Historical Old/Cheap case study](BENCHMARK-CASE-STUDY-OLD-CHEAP.md) | Original two-run usage, early quality review, and prior interpretation; preserved verbatim |
+| Maintainer-supplied Balanced usage export, session `01a0c2d1` | Four-thread model totals transcribed above |
+| Maintainer-supplied three-snapshot comparison, beginning “A. Executive summary.” | Later Old/Cheap/Balanced final findings and frozen SHAs above; original probes retained outside this repo, not rerun here |
+| [GPT-6 Luna run entry](../benchmark/runs/2026-09-25-GR-UX-01-luna6.md) | Implementation report, attachment fingerprint, corrected session export, setup fields and limitations |
+| [Benchmark harness](../benchmark/HARNESS.md) | Procedure for future comparable runs; not evidence that every historical run satisfied it |
 
-The result:
-
-> **Old orchestration was technically stronger by a moderate margin. Neither branch was considered ready to merge without additional fixes.**
-
-Both implementations had a sound transactional foundation: persistent line snapshots, tenant-scoped APIs, transactional finalization, idempotent retry behavior, and separation of invoice source amounts from stock-increase quantity.
-
-### Findings
-
-| Severity | Old orchestration | Cheap profile |
-|---|---:|---:|
-| Critical | 0 | 0 |
-| High | **0** | **1** |
-| Medium | **5** | **8** |
-| Low | **1** | **2** |
-
-```text
-QUALITY FINDINGS
-(lower is better)
-
-Old orchestration
-Critical  0
-High      0
-Medium    5  █████
-Low       1  █
-
-Cheap profile
-Critical  0
-High      1  █
-Medium    8  ████████
-Low       2  ██
-```
-
-### Where Old orchestration was stronger
-
-The Old orchestration implementation was stronger in:
-
-- warehouse unit-price semantics and purchase-price currency
-- nullable/non-numeric source VAT handling
-- real ISO 4217 currency validation
-- mixed-currency behavior
-- contextual supplier creation
-- editor recovery and conflict handling
-- concurrency coverage
-- delayed-response/autosave coverage
-
-It also had substantially stronger editor and concurrency-oriented tests.
-
-### Where Cheap profile was stronger
-
-The Cheap profile implementation had several useful strengths:
-
-- reused a shared receipt-creation path instead of duplicating as much receipt/stock logic
-- preserved more accurate business error messages during finalization
-- returned only open drafts in the "to receive" list
-- refreshed current suggestions when reading a draft
-- changed fewer non-generated source lines overall
-
-### Most important Cheap-profile defect
-
-The independent review found one High-severity issue in the Cheap profile: incorrect warehouse purchase-price semantics when source quantity/unit and stock quantity/unit differed.
-
-Example:
-
-```text
-Source: 1 case for 100 EUR
-Stock:  20 bottles
-
-Correct operational stock unit price: 5 EUR / bottle
-Cheap-profile behavior could preserve UnitNetPrice=100 on Quantity=20
-```
-
-The source financial total remained correct, but the stored/consumed operational purchase price could be wrong and could lose its currency semantics.
-
-### Test-quality comparison
-
-| Area | Old orchestration | Cheap profile |
-|---|---:|---:|
-| Editor component tests | **12** | 3 |
-| Dedicated autosave queue tests | **Yes** | No |
-| Changes during in-flight save | **Covered** | No dedicated test |
-| Two writes with same version | **Covered** | No dedicated independent-context test |
-| Concurrent finalization of same draft | **Covered** | No dedicated test |
-| Two drafts updating same stock | Covered | Covered |
-| Retry finalization | Covered | Covered |
-| Rollback | Covered | Covered |
-| Delayed response / commit race | **Barrier/interceptor test** | No |
-
-The independent review concluded that Old orchestration had clearly stronger coverage around concurrency and delayed responses.
-
-### Interpretation
-
-The Cheap profile delivered the dramatic usage reduction measured in this case study, but the quality comparison shows that **lower orchestration cost did not preserve identical implementation quality** on this high-risk ticket.
-
-That is why Flatplanet Orchestrator uses:
-
-- `cheap` / Luna Max for bounded, lower-risk tasks
-- `balanced` / Terra High as the default production profile
-- `strong` / Sol High for difficult debugging/refactoring
-- `max` / Astra for exceptional cases
-
-For tasks involving multiple of the following, use at least `balanced`:
-
-- financial calculations
-- inventory integrity
-- concurrency
-- migrations
-- authorization/security
-- cross-tenant isolation
-- irreversible state transitions
-
-If an independent reviewer reports any High-severity finding, perform a final independent re-review after corrections.
-
-## Verification performed
-
-Reported passing verification included:
-
-- API build: zero errors or warnings
-- test-project build: passed, with two pre-existing CS8602 warnings in `AssistantChatAccessTests.cs`
-- fresh isolated PostgreSQL migrations and bootstrap
-- forward migrations: 4 tests
-- database mutation / cross-tenant suite: 248 tests
-- backend contracts: 13 tests
-- final targeted backend checks: 9 tests covering receipts, KSeF, rollback, and concurrency
-- frontend tests
-- 64 component tests
-- typecheck
-- lint
-- production build
-- `git diff --check`
-
-No outstanding failed test or build was reported.
-
-## Verification still missing
-
-The following were not fully verified:
-
-- full unfiltered `dotnet test PubApp.slnx`
-- full database-compatibility suite
-- browser E2E
-- exact committed-SHA CI verification
-- complete broad-suite rerun after the final backend correction
-
-Acceptance criteria still requiring manual/end-to-end validation included:
-
-- previously mapped 1-5 line invoice completed within 60 seconds
-- real desktop/mobile browser workflow
-- keyboard interaction
-- reopening a persisted draft
-- owner/manager acceptance
-- full A7 acceptance
-
-The ticket therefore remained `IN_PROGRESS`.
-
-## Interpretation
-
-### What worked
-
-The orchestration change successfully moved almost all execution activity away from the expensive Astra root:
-
-```text
-Old orchestration: Astra = 40.4% of all tokens
-Cheap profile:     Astra =  1.4% of all tokens
-```
-
-The worker consumed more tokens, but on the cheaper model. This is intentional.
-
-The root's cached input dropped from 58.76M to 0.95M, strongly indicating that repeated context-heavy root wake-ups were the dominant inefficiency in the original workflow.
-
-### What did not become free
-
-The Cheap profile still used substantial worker compute:
-
-```text
-117.18M Luna tokens
-```
-
-Flatplanet Orchestrator is not a "use fewer tokens at all costs" strategy. It is primarily a **model-routing and orchestration-efficiency strategy**:
-
-- expensive reasoning stays sparse,
-- cheap execution can be extensive,
-- expensive review is used selectively.
-
-### Quality trade-off
-
-The Cheap profile did not match the implementation quality of the Old orchestration branch in the later independent branch-to-branch review.
-
-That result supports the profile model used by Flatplanet Orchestrator:
-
-- `cheap` / Luna: suitable for bounded low-risk implementation
-- `balanced` / Terra: preferred default for normal production work
-- `strong` / Sol: complex debugging/refactors
-- `max` / Astra: exceptional cases
-
-For work involving concurrency, money, inventory integrity, migrations, authorization/security, or cross-tenant isolation, using at least `balanced` is prudent unless the user explicitly chooses `cheap`.
-
-## Allowance caveats
-
-The allowance observations in this case study are specific to the **ChatGPT Pro plan** used for the benchmark.
-
-For this ChatGPT Pro account, the backend `primary` rate-limit window represented the **7-day / weekly allowance**. The benchmark therefore observed:
-
-```text
-old:   weekly (primary) 19.0% -> 23.0%   (+4 pp)
-cheap: weekly (primary) 23.0% -> 23.0%   (0 pp visible)
-```
-
-The backend labels `primary` and `secondary` should not be treated as universal semantic names across all Codex configurations; the relevant interpretation is the window duration/account configuration. In this benchmark, `primary` was the weekly window.
-
-This should NOT be interpreted as proof that the Cheap profile consumed exactly zero allowance.
-
-Reasons:
-
-- displayed percentages may be rounded
-- usage reporting may lag
-- Codex plan allowance is not publicly documented as a simple token-to-percent formula
-- the secondary window was unavailable in both reports
-- account-wide concurrent usage could affect the same counters
-
-The weekly percentage is useful as an observed plan-level signal, but the most granular evidence still comes from the per-thread model/token measurements and the observed root wake-up reduction.
-
-## Practical recommendation
-
-For production use:
-
-```text
-$flatplanet-orchestrator profile=balanced <task>
-```
-
-is the recommended default.
-
-Use `cheap` when the implementation is well bounded and low risk.
-
-Use independent review for changes involving:
-
-- concurrency
-- data integrity
-- financial calculations
-- migrations
-- security/authorization
-- cross-tenant behavior
-- complex business invariants
-
-If a reviewer reports a high-severity finding, a final independent re-review after corrections is recommended.
-
-## Bottom line
-
-In this case study, the Cheap profile changed the workload from:
-
-```text
-expensive Astra root continuously orchestrating
-```
-
-to:
-
-```text
-Astra plans
--> cheaper worker executes autonomously
--> Astra reviews selectively
-```
-
-Measured result:
-
-- **95.4% fewer Astra root responses**
-- **98.2% fewer Astra root tokens**
-- **97.3% fewer Astra tokens overall**
-- **21.0% fewer total tokens**
-- **Astra share reduced from 40.4% to 1.4%**
-- independent branch comparison still found the Old orchestration implementation technically stronger
-
-The primary lesson is that **orchestration behavior can dramatically reduce expensive usage, but worker-model choice and independent verification still materially affect implementation quality**.
+Unknown fields remain unknown. This publication adds documentation only; it does not commit the application implementation, certify a final source snapshot, or perform deployment/acceptance.

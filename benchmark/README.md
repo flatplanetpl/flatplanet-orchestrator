@@ -16,7 +16,24 @@ final snapshot.
 
 - [HARNESS.md](HARNESS.md) — benchmark procedure and evidence rules
 - [RUN-TEMPLATE.md](RUN-TEMPLATE.md) — manifest to copy for each benchmark run
-- [Case study](../docs/BENCHMARK-CASE-STUDY.md) — historical GR-UX-01 results
+- [Current comparison](../docs/BENCHMARK-CASE-STUDY.md) — Old, Cheap, Balanced and GPT-6 Luna usage, with quality-evidence boundaries
+- [Historical two-run study](../docs/BENCHMARK-CASE-STUDY-OLD-CHEAP.md) — preserved Old/Cheap article and earlier review
+
+## Published run entries
+
+| Run dates | Variant | Entry | Evidence status |
+|---|---|---|---|
+| 2026-09-25 to 2026-09-26 | GPT-6 Luna / max (`luna6`) | [GR-UX-01A run](runs/2026-09-25-GR-UX-01-luna6.md) | Corrected session export recorded; implementation closure reported; acceptance PARTIAL; comparative review PENDING |
+
+The Luna 6 entry was added on 2026-10-05 from maintainer-supplied reports. Its
+186,866,991 tokens belong to root session
+`01a0d9c0-89b9-7220-a0f9-73998acb7704`. The routing canary and the unrelated
+`daycomplet` export are excluded. The final implementation was uncommitted;
+its final source-snapshot identifier has not been supplied.
+
+The comparison order remains **Old orchestration → Cheap profile → Balanced
+profile → GPT-6 Luna**. Do not insert zeros for Luna 6 into final comparative
+finding counts: its own closure report is a different evidence layer.
 
 ## Core benchmark rule
 
