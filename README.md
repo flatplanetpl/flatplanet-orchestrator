@@ -18,6 +18,8 @@ The GR-UX-01A evidence now includes four implementation runs, in a fixed order: 
 
 **Benchmark plan:** ChatGPT Pro. These are maintainer-supplied session exports, not a new test execution or a guaranteed savings ratio.
 
+> **Measurement confidence:** Luna 6's exported sums are **ARITHMETIC CHECKED**; the local helper version/hash, underlying rollout files, duplicate-history handling and per-event model attribution have **NOT** been independently audited. Treat the figures as a consistent session export, not verified billing or a certified model-only benchmark. No counting error has been established, so the reported numbers are retained unchanged. See the [usage validation gate](benchmark/HARNESS.md#usage-validation-gate).
+
 | Metric | Old orchestration | Cheap profile | Balanced profile | GPT-6 Luna |
 |---|---:|---:|---:|---:|
 | Root Astra responses | 455 | 21 | 37 | **105** |
@@ -30,13 +32,15 @@ The GR-UX-01A evidence now includes four implementation runs, in a fixed order: 
 
 *The Luna 6 span is 19h18m06s, with an unquantified 401 interruption and continuation. It is not verified active coding time and must not be used for a model-speed ranking. Other work on the same account was also documented, so the 30% → 46% change is not a Luna-6-only allowance charge. The maintainer identified `primary` as weekly on this account; this is not a universal mapping of that backend label. Zero visible change is not proof of zero usage.
 
-The important distinction is between **root activity, whole-workflow usage, and final quality**. Luna 6 used 87.6% fewer root Astra tokens than Old, but 24.3% more total tokens. Different models, tester workloads, review rounds and CLI/skill versions prevent a clean model-only or monetary-cost comparison.
+The important distinction is between **root activity, whole-workflow usage, and final quality**. In the supplied exports, Luna 6 records 87.6% fewer root Astra tokens than Old, but 24.3% more total tokens. These are descriptive ratios pending a raw-log audit. Different models, tester workloads, review rounds and CLI/skill versions prevent a clean model-only or monetary-cost comparison.
+
+**186.87M is the whole workflow:** 130.35M attributed to the GPT-6 Luna worker, 44.67M to the GPT-5.6 Luna tester, and 11.84M to Astra root/reviewer. Cached input is included; reasoning is not added a second time. `Responses` is the helper's exported count, not independently reconciled billable requests. Arithmetic consistency alone cannot detect duplicated or omitted history.
 
 See the [four-run comparison](docs/BENCHMARK-CASE-STUDY.md) for exact counts and limitations, and the [Luna 6 run entry](benchmark/runs/2026-09-25-GR-UX-01-luna6.md) for provenance and reported verification.
 
 ### At a glance
 
-Root Astra tokens relative to Old = 100%. The 30-cell bars are rounded; percentages are descriptive token ratios, not quality scores.
+Exported root Astra tokens relative to Old = 100%. The 30-cell bars are rounded; percentages are descriptive token ratios, not quality scores or independently audited charges.
 
 ```text
 ROOT ASTRA TOKENS
@@ -236,6 +240,7 @@ The reproducible benchmark procedure lives under **[benchmark/](benchmark/README
 Use:
 
 - [benchmark/HARNESS.md](benchmark/HARNESS.md) for the full run and review procedure,
+- [usage validation gate](benchmark/HARNESS.md#usage-validation-gate) for session selection, helper provenance and raw-log reconciliation,
 - [benchmark/RUN-TEMPLATE.md](benchmark/RUN-TEMPLATE.md) for per-run evidence,
 - [docs/BENCHMARK-CASE-STUDY.md](docs/BENCHMARK-CASE-STUDY.md) for the current four-run comparison,
 - [benchmark/runs/2026-09-25-GR-UX-01-luna6.md](benchmark/runs/2026-09-25-GR-UX-01-luna6.md) for the Luna 6 entry and its limitations.
@@ -247,9 +252,10 @@ When comparing orchestration strategies, track at least:
 - root total tokens,
 - worker total tokens,
 - root share of total tokens,
-- task wall time,
-- Codex primary/secondary allowance delta when available,
+- elapsed session span and separately established active time, if available,
+- Codex primary/secondary allowance observations and attribution limits,
 - exact application/skill SHAs,
+- full session/thread IDs, local helper hash, export hashes and raw-log audit status,
 - final-snapshot quality findings and unverified acceptance criteria.
 
 A healthy run should move most execution tokens away from the expensive root and into the selected worker model without weakening the evidence required for final implementation quality.

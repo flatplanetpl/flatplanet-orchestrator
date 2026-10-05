@@ -95,6 +95,9 @@ For explicit model experiments, verify the effective worker model from session
 or tool metadata when possible.
 
 Do not infer the effective model solely from the natural-language prompt.
+Separate requested settings, helper-export labels, and independently inspected
+per-thread/per-event metadata. A summary label is not proof that every turn used
+the same model or effort; preserve transitions and unknown attribution.
 
 If the requested model cannot be selected, stop the benchmark run rather than
 silently continuing with a fallback model.
@@ -158,43 +161,143 @@ identifier and preserve the diff.
 Do not compare a committed snapshot from one run with an unstable working tree
 from another without explicitly documenting the difference.
 
-## 8. Capture usage immediately
+## 8. Capture usage by pinned session ID
 
 Usage collection belongs to the implementation run, not the later comparative
-review.
+review. The usage helper is external to this repository. Record its exact local
+revision, file hash and any modifications before changing or updating it.
 
-With the existing external usage helper:
+Use its session list to locate the run, then resolve the **full root ID** and
+verify the expected `cwd`. Do not select by recency alone: `--latest` can pick a
+different project, canary, or later review. The terminal's current directory is
+not a session filter.
 
 ```bash
-python3 ~/codex-astra-luna-orchestrator/scripts/token_usage.py --latest
+python3 ~/codex-astra-luna-orchestrator/scripts/token_usage.py --list --limit 1000
 ```
+
+After resolving the exact run, replace the placeholder before running:
+
+```bash
+HELPER="$HOME/codex-astra-luna-orchestrator/scripts/token_usage.py"
+ROOT_SESSION_ID='REPLACE_WITH_FULL_ROOT_SESSION_ID'
+sha256sum "$HELPER"
+python3 "$HELPER" --root "$ROOT_SESSION_ID" --format md
+python3 "$HELPER" --root "$ROOT_SESSION_ID" --format json
+```
+
+Save both exports, their exit status, generation timestamp, command arguments and
+SHA-256 hashes in the private evidence directory. These commands report usage;
+they are not a raw-log audit. Preserve the existing helper and exports before
+any later parser change. Check local `--help` if supported options differ.
+
+Do not apply a single-day filter to a run spanning midnight. Inventory all its
+root/child segments and any archived or resumed logs actually used. Exclude the
+routing canary and independent comparative-review sessions explicitly.
 
 Record:
 
-- session ID
-- cwd
-- Codex version
-- number of threads
-- wall time
-- plan primary/secondary allowance change when available
-- each thread's role
-- model and reasoning effort
-- responses
-- uncached input
-- cached input
-- output
-- reasoning
-- total tokens
-- duration
-- totals per model
-- totals across all models
-- input cache-hit rate
+- full root ID, full child IDs and parent/root relationships
+- cwd and run boundaries, including post-implementation turns if present
+- Codex version(s) observed in relevant segments
+- helper repository revision, local file hash and local modifications
+- raw file inventory, hashes, lengths and completeness warnings
+- number of threads and inclusion/exclusion policy
+- elapsed session span; separately established active time only when measured
+- plan primary/secondary observations, window duration/reset evidence and other account use
+- each thread's role, model and reasoning effort, including changes or unknowns
+- exported responses and the parser's definition of that counter
+- uncached input, cached input, output, reasoning and total tokens
+- per-thread and per-model totals and weighted input cache-hit rate
+- arithmetic-check and raw-log-audit status, reported separately
+
+### Usage validation gate
+
+**Publishing an export is allowed before auditing it, but the confidence label
+must state what was checked.** Do not replace uncertainty with a numerical
+correction or silently promote an arithmetic check to a verified measurement.
+
+| Status | Minimum evidence | Does not establish |
+|---|---|---|
+| REPORTED | Saved export and declared run identity | Correct parsing or arithmetic |
+| ARITHMETIC CHECKED | Rows, subtotals and ratios recomputed from the export | Unique, complete, correctly attributed events |
+| RAW LOG AUDITED | Exact helper and frozen relevant logs independently reconciled, with method and exceptions recorded | Backend billing certification, active time or model quality |
+
+Keep allowance attribution, active-time measurement, model identity and final
+quality as separate fields. A limitation in one does not automatically invalidate
+all other measurements. Apply the same standards to every compared run.
+
+For a raw-log audit:
+
+1. **Freeze inputs without modifying them.** Record the helper's exact local bytes
+   and revision, not just a link to upstream `main`. Preserve read-only copies of
+   the relevant rollout files with hashes. Missing, malformed or truncated records
+   must be reported rather than silently treated as zero. Restrict collection to
+   this run; keep logs private because they may contain code, prompts or secrets.
+2. **Establish membership and boundaries.** Use full thread IDs and actual metadata
+   relationships. Do not group by eight-character prefixes or cwd alone. Identify
+   resumed/forked histories, separate segments, child preflight and final-report
+   turns. Exclude unrelated work. A shared prefix is not evidence of duplicate IDs.
+3. **Check event semantics and overlap.** Determine which records are per-response
+   deltas, cumulative snapshots or repeated notifications for the CLI version(s).
+   Check duplicate files and repeated history across resumes before aggregating.
+   Deduplicate only with supported event/response identity or verified overlap,
+   and retain an exclusion ledger. Identical token counts are not proof of a
+   duplicate; a real retry may represent new work. A 401 or resume alone proves
+   neither double counting nor a billable successful request.
+4. **Reconcile counters once.** Recompute per-thread/per-model totals independently.
+   Do not add cumulative counters to the deltas they already summarize. Compare
+   like-for-like boundaries, accounting for resets, inherited/forked history,
+   compaction, missing records and fallback paths before expecting equality.
+   Resolve discrepancies or leave the result provisional; do not force a match.
+5. **Verify attribution.** Map usage to the model/effort active for that event where
+   supported. A last-known thread setting must not silently label its entire past
+   history. Check whether a fallback attributes all cumulative usage to the last
+   model or skips earlier periods when record formats are mixed. Report unknown
+   attribution instead of assigning it to the requested model.
+6. **Retain the result and its limits.** Save original and reconciled exports,
+   helper/log hashes, scope, exclusions, differences and audit notes. A conclusion
+   of no counting defect requires completed checks; otherwise state NOT AUDITED.
+   Do not edit historical figures in place without a sourced correction record.
+
+For the input/output convention used by these supplied exports, check:
+
+```text
+input = uncached_input + cached_input
+total = input + output
+0 <= reasoning_output <= output
+cache_hit_rate = sum(cached_input) / sum(input)
+```
+
+Cached input is already part of input; reasoning output is already part of
+output. Neither is added twice. Calculate cache ratios from summed counts, not an
+unweighted average of thread percentages. If the actual log schema differs,
+document it instead of forcing these identities. `Responses` must retain its
+parser-specific definition until reconciled; it is not automatically billable
+API calls, useful implementation steps or successful task completions.
+
+For general API terminology, OpenAI documents [prompt-cache reuse](https://developers.openai.com/api/docs/guides/prompt-caching)
+and [reasoning within output usage](https://developers.openai.com/api/docs/guides/reasoning).
+These references explain terminology, not the correctness of a particular Codex
+CLI rollout parser or how this Pro account's allowance was charged.
+
+### Time, allowance and cost boundaries
+
+Publish elapsed log span separately from active execution time. Record known
+interruptions and intervals only when supported by timestamps and events. Do not
+invent active time by subtracting arbitrary idle thresholds, sum overlapping
+thread durations, or rank model speed from an interrupted session span.
 
 Do not assume backend labels such as `primary` and `secondary` have universal
-semantics. Record the observed window/account interpretation separately.
+semantics. Preserve observed window duration/reset details when available; leave
+unknown mappings unresolved. Account percentages may be rounded, delayed, reset
+or affected by other sessions. Without isolated attribution, label the change
+**account observation only** and do not subtract other deltas mechanically.
 
-Displayed allowance percentages may be rounded or delayed. Treat them as a
-plan-level signal, not an exact token-to-percent conversion.
+Raw token sums across different models/cache categories are not monetary cost.
+Any estimate needs a declared pricing basis and applicable rates; an API-rate
+estimate is not a Pro allowance charge. Cache reuse also means aggregate tokens
+do not measure unique input size or code produced.
 
 ## 9. Separate implementation findings from final-snapshot findings
 
@@ -332,13 +435,15 @@ Include:
 
 | Metric | Candidate A | Candidate B | Candidate C |
 |---|---:|---:|---:|
-| Wall time | | | |
-| Root responses | | | |
+| Export / arithmetic / raw-log status | | | |
+| Elapsed session span | | | |
+| Active time and measurement basis, or NOT ESTABLISHED | | | |
+| Root responses, as defined by parser | | | |
 | Root tokens | | | |
 | All premium/root-model tokens | | | |
 | Worker tokens | | | |
 | Total tokens | | | |
-| Visible plan allowance delta | | | |
+| Observed plan allowance and attribution | | | |
 
 ### Final-snapshot quality
 
@@ -369,10 +474,11 @@ Also report:
 
 ## 15. Interpretation rules
 
-Valid conclusion:
+Valid conclusion, with the measurement status made explicit:
 
-> In this benchmark, configuration X used fewer Astra root turns and its final
-> snapshot had fewer independently confirmed High findings than configuration Y.
+> In the supplied exports, configuration X records fewer Astra root turns than
+> configuration Y. Its final snapshot also had fewer independently confirmed
+> High findings. The usage raw-log audit status is reported separately.
 
 Invalid conclusion without stronger controls:
 
@@ -382,6 +488,8 @@ Also avoid:
 
 - "same quality at lower cost" unless final-snapshot evidence supports it;
 - equating total tokens across different models with monetary cost;
+- equating arithmetic consistency with correct, unique and complete event accounting;
+- treating an interrupted elapsed span as model speed or a shared-account delta as a run-only charge;
 - equating zero known findings with proof of correctness;
 - treating a larger test suite as inherently higher quality;
 - treating a newer implementation as inherently better.
@@ -392,7 +500,9 @@ For every run retain:
 
 - completed [RUN-TEMPLATE.md](RUN-TEMPLATE.md)
 - exact final SHA or snapshot
-- usage report
+- original usage exports, commands and export hashes
+- exact local helper revision/hash and raw-log inventory/hashes, kept privately
+- audit method, reconciled result and exclusion ledger when a raw-log audit is performed
 - implementation summary
 - independent tester/reviewer findings
 - final re-review result when applicable

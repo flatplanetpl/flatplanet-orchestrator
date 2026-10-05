@@ -3,7 +3,7 @@
 **Evidence update:** 2026-10-05  
 **Order:** Old orchestration → Cheap profile → Balanced profile → GPT-6 Luna.
 
-**Quick navigation:** [Evidence](#evidence-scope) · [Usage](#usage-comparison) · [Bars](#visual-comparison) · [Quality](#final-snapshot-quality) · [Luna 6](#gpt-6-luna-process-results) · [Limitations](#interpretation-limits) · [Historical study](BENCHMARK-CASE-STUDY-OLD-CHEAP.md) · [Harness](../benchmark/README.md) · [README](../README.md)
+**Quick navigation:** [Evidence](#evidence-scope) · [Usage](#usage-comparison) · [Confidence](#measurement-confidence) · [Bars](#visual-comparison) · [Quality](#final-snapshot-quality) · [Luna 6](#gpt-6-luna-process-results) · [Limitations](#interpretation-limits) · [Historical study](BENCHMARK-CASE-STUDY-OLD-CHEAP.md) · [Harness](../benchmark/README.md) · [README](../README.md)
 
 ## Evidence scope
 
@@ -20,7 +20,7 @@ The [Luna 6 run entry](../benchmark/runs/2026-09-25-GR-UX-01-luna6.md) contains 
 
 ## Usage comparison
 
-All counts below come from the supplied exports. `M` means one million tokens. Model identifiers are those recorded for these runs, not a statement about current product availability or pricing.
+All counts below come from the supplied exports. `M` means one million tokens. Model identifiers are those recorded for these runs, not a statement about current product availability or pricing. **The tables and derived ratios are not independently audited raw-log measurements or billing records.**
 
 | Metric | Old orchestration | Cheap profile | Balanced profile | GPT-6 Luna |
 |---|---:|---:|---:|---:|
@@ -40,11 +40,25 @@ All counts below come from the supplied exports. `M` means one million tokens. M
 | Input cache-hit rate | 98.2% | 98.2% | 97.0% | 97.3% |
 | Reported elapsed session span | 106m56s | 151m42s | 172m00s | 1158m06s* |
 
-`—` means the model has no row in that supplied export. Total tokens include cached input; they do not measure unique source size. Reported reasoning counts are not added again to the exported totals.
+`—` means the model has no row in that supplied export. Total tokens include cached input; they do not measure unique source size. Reported reasoning counts are not added again to the exported totals. `Responses` retains the helper's label and is not a reconciled count of billable requests.
 
 *Luna 6's span is 19h18m06s and includes an unquantified interruption after a 401 error and subsequent continuation. Active coding time has not been established. Do not rank model speed using this elapsed span, or sum thread durations as wall time.
 
 The original usage exports for Old, Cheap and Balanced were supplied in the benchmark discussion; the Old/Cheap values are also preserved in the historical study. Balanced's export recorded 2,120,143 root Astra + 1,435,954 reviewer Astra + 24,360,298 Terra + 41,027,409 Luna tokens. The Luna 6 export is reproduced in the linked run entry. Raw rollout logs were not audited for this publication.
+
+### Measurement confidence
+
+| Check | Luna 6 evidence status | What this permits |
+|---|---|---|
+| Export arithmetic | **ARITHMETIC CHECKED** | All four thread rows reconcile with model and grand totals; not proof of event uniqueness or completeness |
+| Exact local helper revision and file hash | **NOT RECORDED** | Do not assume the local modified helper equals any current upstream checkout |
+| Full child IDs, file inventory, resumes and duplicate history | **NOT AUDITED** | Shared eight-character prefixes are insufficient; no actual duplication has been established |
+| Per-event model/effort attribution and counter reconciliation | **NOT AUDITED** | Model labels are additional export evidence, not independent certification of every response |
+| Active coding time | **NOT ESTABLISHED** | Publish elapsed span only, without a speed ranking |
+| Run-only allowance or monetary cost | **NOT ISOLATED / NOT ESTABLISHED** | Publish account observations, not a Luna-only charge |
+| Final comparative quality | **PENDING** | No Luna 6 quality ranking from in-process closure claims |
+
+The arithmetic check was performed on transcribed export values, not on the maintainer's rollout files. A duplicated or incomplete history can still produce internally consistent sums. Conversely, large cached-input totals and an interrupted session are not proof of a parser defect. Preserve all published counts unless a [raw-log audit](../benchmark/HARNESS.md#usage-validation-gate) establishes a correction, and retain the original alongside any corrected result. Apply the same validation standard to the older runs before drawing precise comparative conclusions.
 
 ### Arithmetic changes, not cost estimates
 
@@ -70,7 +84,7 @@ An unrelated `daycomplet` session on the same account was separately reported wi
 
 ## Visual comparison
 
-Root Astra tokens relative to Old = 100%. Bars are rounded to 30 cells; exact ratios are shown alongside. These are **token bars, not quality scores**.
+Exported root Astra tokens relative to Old = 100%. Bars are rounded to 30 cells; exact ratios are shown alongside. These are **token bars, not quality scores or audited charges**.
 
 ```text
 ROOT ASTRA TOKENS — RELATIVE TO OLD
@@ -80,7 +94,7 @@ Balanced   2.12M |#.............................|   3.6%
 Luna 6     7.40M |####..........................|  12.4%
 ```
 
-Low root activity does not guarantee low whole-workflow usage: Luna 6 records the largest total token count in this set, despite using far fewer root Astra tokens than Old. The varying verification workloads and model mixes must remain visible.
+Low root activity does not guarantee low whole-workflow usage: the supplied Luna 6 export records the largest total token count in this set, despite recording far fewer root Astra tokens than Old. The varying verification workloads, model mixes and raw-log audit status must remain visible.
 
 ## Final-snapshot quality
 
@@ -126,6 +140,7 @@ The implementation report initially could not verify effective child identity th
 
 ## Interpretation limits
 
+- **Arithmetic validation is not a raw-log audit.** Local helper provenance, complete child identities, duplicated/omitted records and model attribution remain unverified. The reported counts and ratios are retained, not certified or adjusted speculatively.
 - **Different workflow, not a controlled model-only experiment.** Skills, CLI versions, tester presence, reviewer effort and correction history changed. Older runs used CLI 0.155.1; Luna 6 used 0.157.0 and the pinned orchestrator commit documented in its run entry.
 - **No active-time ranking.** Luna 6's 401 interruption and idle span were not measured separately.
 - **No isolated Luna 6 allowance charge.** Other account usage was documented; no token-to-weekly conversion is inferred.
@@ -133,7 +148,7 @@ The implementation report initially could not verify effective child identity th
 - **No test-count quality score.** Suites cover different scopes; baseline passing tests coexisted with independently reproduced defects in the three earlier snapshots.
 - **No same-quality-at-lower-cost claim.** Accepted-solution cost would include implementation, review, correction, regression and final acceptance at the same evidence threshold.
 
-The defensible observation is narrower: orchestration changes reduced recorded root Astra activity relative to Old, while whole-workflow token totals and remaining implementation quality varied. The [Luna 6 entry](../benchmark/runs/2026-09-25-GR-UX-01-luna6.md) adds another measured workflow, not a new quality winner.
+The defensible observation is narrower: the supplied exports show lower root Astra activity relative to Old, while whole-workflow token totals and remaining implementation quality varied. The [Luna 6 entry](../benchmark/runs/2026-09-25-GR-UX-01-luna6.md) adds another reported workflow, pending a raw-log audit and comparative quality review, not a new quality winner.
 
 ## Source map and preserved history
 
