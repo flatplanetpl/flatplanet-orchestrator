@@ -13,9 +13,7 @@ Keep Astra focused on planning and integration; delegate implementation to worke
 
 ## Quick start
 
-For Linux with Bash, Git and GNU coreutils, plus an installed, signed-in Codex client with the required models and subagent tools. Replace `/path/to/application-repo` with an existing Git working tree. Finish any active Codex task before replacing skill files.
-
-Clone the skill source once; skip this step if you already have the clone:
+### Step 1 — Clone
 
 ```bash
 git clone --depth 1 --branch main \
@@ -23,23 +21,19 @@ git clone --depth 1 --branch main \
   ~/flatplanet-orchestrator
 ```
 
-Install from that checkout, then start Codex with the intended root settings:
+### Step 2 — Install
+
+Replace `/path/to/application-repo` with your existing Git repository path.
 
 ```bash
-bash ~/flatplanet-orchestrator/scripts/install.sh /path/to/application-repo &&
-cd /path/to/application-repo &&
-codex -m gpt-6-astra -c 'model_reasoning_effort="medium"'
+bash ~/flatplanet-orchestrator/scripts/install.sh /path/to/application-repo
 ```
 
-Enter the following **in the Codex prompt, not in Bash**:
-
-```text
-$flatplanet-orchestrator profile=balanced add pagination to the orders endpoint and cover it with tests
-```
-
-The installation lives at `.agents/skills/flatplanet-orchestrator/SKILL.md`. Existing installations are not overwritten by `install.sh`; use the [updater](#update-an-existing-installation). See [first-run verification and troubleshooting](docs/SETUP.md) before relying on a profile's model settings.
+Already installed? [Update instead](#update-an-existing-installation).
 
 ## Requirements and compatibility
+
+Requires Linux, Bash, Git, GNU coreutils and a signed-in Codex client. Finish active Codex tasks before replacing skill files.
 
 Use a client that discovers repository skills and supports subagent spawning with explicit model/effort settings and long waits. Your account must have access to the required root, worker and verification models. **A missing model or tool is a compatibility blocker, not permission to silently substitute the root.**
 
@@ -65,16 +59,26 @@ The root remains **GPT-6 Astra / medium** unless explicitly overridden. Explorer
 
 ## Usage
 
-Choose a profile explicitly to make the intended implementation model clear:
+### Start Codex
+
+```bash
+cd /path/to/application-repo &&
+codex -m gpt-6-astra -c 'model_reasoning_effort="medium"'
+```
+
+### Use the skill
+
+In the Codex prompt:
 
 ```text
+$flatplanet-orchestrator profile=balanced add pagination to the orders endpoint and cover it with tests
 $flatplanet-orchestrator profile=cheap fix the form validation
 $flatplanet-orchestrator profile=luna6 implement the search filters with tests
 $flatplanet-orchestrator profile=strong redesign the data synchronization
 $flatplanet-orchestrator worker=terra effort=high implement the pagination endpoint
 ```
 
-Omitting the profile enables the risk-aware selection described above:
+Omit the profile for risk-aware selection:
 
 ```text
 $flatplanet-orchestrator implement the search filters with tests
