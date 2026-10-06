@@ -16,9 +16,8 @@ Keep Astra focused on planning and integration; delegate implementation to worke
 ### Step 1 — Clone
 
 ```bash
-git clone --depth 1 --branch main \
-  https://github.com/flatplanetpl/flatplanet-orchestrator.git \
-  ~/flatplanet-orchestrator
+git clone https://github.com/flatplanetpl/flatplanet-orchestrator.git
+cd flatplanet-orchestrator
 ```
 
 ### Step 2 — Install
@@ -26,7 +25,7 @@ git clone --depth 1 --branch main \
 Replace `/path/to/application-repo` with your existing Git repository path.
 
 ```bash
-bash ~/flatplanet-orchestrator/scripts/install.sh /path/to/application-repo
+./scripts/install.sh /path/to/application-repo
 ```
 
 Already installed? [Update instead](#update-an-existing-installation).
@@ -116,11 +115,11 @@ Reviewer effort is `low` only where the low-risk conditions in the skill permit 
 
 ## Update an existing installation
 
-Finish active Codex work, refresh the source clone, and copy it into the application:
+From the `flatplanet-orchestrator` directory:
 
 ```bash
-git -C ~/flatplanet-orchestrator pull --ff-only &&
-bash ~/flatplanet-orchestrator/scripts/update.sh /path/to/application-repo
+git pull --ff-only &&
+./scripts/update.sh /path/to/application-repo
 ```
 
 A full backup is created before matching skill files are replaced. Local-only files remain; customizations in replaced files are **not merged**. Neither script modifies `.codex/config.toml`, `AGENTS.md`, other skills, Git staging or commits. A `git pull` alone does not refresh the application's copy.
